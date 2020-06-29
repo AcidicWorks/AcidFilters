@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="style/style.css">
+
+<body>
+	<main role='main' class='container-fluid h-100'>
+		<div class='row h-100'>
+			<!-- VIDEO CANVAS -->
+			<div class='col-12 h-100'>
+				<video class='hide' id='video' autoplay playsinline></video>
+				<canvas id='canvas' onclick=toggleMenu()></canvas>
+			</div>
+			
+			<!-- ONBOARDING MENU -->
+			<div class='col-12 p-1 h3 popup fade-in hide' id='on-boarding' onclick=hideOnBoarding()>
+				Click image to display options
+			</div>
+			
+			<!-- OPTIONS MENU -->
+			<div class='col-lg-6 col-sm-12 popup fade-in hide' id='opt-menu'>
+				<!-- MENU BACK AND CLOSE BUTTONS -->
+				<div w-100>
+					<button class='fa fa-arrow-left fa-2x' id='go-back-btn' onclick=goToParentPage()></button>
+					<button class='fa fa-times fa-2x float-right' id='close-menu-btn' onclick=hideMenu()></button>
+				</div>
+				<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
+				<div class='d-flex flex-row bd-highlight mb-1'>
+					<label class='p-2 mb-0 bd-highlight left-label' for='videoSource'>Camera</label>
+					<select class='p-0 ml-2 bd-highlight h7' id='videoSource' class='form-control'></select>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='facingMode' onclick=toggleFacingMode()>
+						<img src='style/flipCamera.png' width='30'/>
+					</button>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='snapshot' onclick=saveSnapshot()>
+						<img src='style/photo.png' width='30'/>
+						<a id='snapshot-link' href='#'></a>
+						<img class='hide' id='snapshot-img'/>
+					</button>
+				</div>
+				<!-- SLIDER CONTROLS -->
+				<div class='range-field m-0 p-0'>
+					<form id='sliders'/>
+				</div>
+				<!-- PRESET BUTTONS -->
+				<div class='mb-3 mt-0 d-flex flex-row'>
+					<label class='left-label p-2 mb-0' id='presets-label' for='presets'>Presets</label>
+					<div class='d-flex flex-row' id='presets'/>
+				</div>					
+			</div>			
+			
+		</div>
+	</main>
+
+	<!-- SHADERS -->
+
+	<script id='vshader' type='text/plain'>
+		attribute vec2 position;
+		void main(void) {
+			gl_Position = vec4(position, 0, 1);
+		}
+	</script>
+
+	<script id='fshader' type='text/plain'>
+		precision mediump float;
+		uniform sampler2D sampler0;
+		uniform float width, height;
+		uniform float K1, K2, K3, K4, K5;
+
+		void main() {
+			vec2 st = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
+			vec3 c = texture2D(sampler0, st).rgb;
+			float lum = 0.21 * c.r + 0.72 * c.g + 0.07 * c.b;
+			gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+
+			if (lum < K1) {
+				if (mod(gl_FragCoord.x + gl_FragCoord.y, K5) == 0.0)
+					gl_FragColor.a = 1.0;
+			}
+			if (lum < K2) {
+				if (mod(gl_FragCoord.x - gl_FragCoord.y, K5) == 0.0)
+				gl_FragColor.a = 1.0;
+			}
+			if (lum < K3) {
+				if (mod(gl_FragCoord.x + gl_FragCoord.y - K5/2.0, K5) == 0.0)
+				gl_FragColor.a = 1.0;
+			}
+			if (lum < K4) {
+				if (mod(gl_FragCoord.x - gl_FragCoord.y - K5/2.0, K5) == 0.0)
+				gl_FragColor.a = 1.0;
+			}
+		}
+	</script>
+
+	<!-- MAIN PROGRAM -->
+
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" crossorigin="anonymous"></script>
+	<script src='js/webglShader.js'></script>
+	<script src='js/webglTexture.js'></script>
+	<script src='js/webcam.js'></script>
+	<script src='js/common.js?v=3'></script>
+
+	<script>
+		console.log('VERSION 5');
+
+		// -- Shader control knobs --
+		
+		const k1 = gl.getUniformLocation(program, 'K1');
+		const k2 = gl.getUniformLocation(program, 'K2');
+		const k3 = gl.getUniformLocation(program, 'K3');
+		const k4 = gl.getUniformLocation(program, 'K4');
+		const k5 = gl.getUniformLocation(program, 'K5');
+
+		// -- Sliders --
+
+		const slider1Update = createSlider('slider1', 'Hatch1 left', 0, 1, 0.01, () => {
+			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
+		});
+
+		const slider2Update = createSlider('slider2', 'Hatch1 right', 0, 1, 0.01, () => {
+			gl.uniform1f(k2, document.querySelector('#slider2 > input').value);
+		});
+
+		const slider3Update = createSlider('slider3', 'Hatch2 left', 0, 1, 0.01, () => {
+			gl.uniform1f(k3, document.querySelector('#slider3 > input').value);
+		});
+
+		const slider4Update = createSlider('slider4', 'Hatch2 right', 0, 41, 0.01, () => {
+			gl.uniform1f(k4, document.querySelector('#slider4 > input').value);
+		});
+
+		const slider5Update = createSlider('slider5', 'Separation', 1, 20, 1, () => {
+			const  val = checkSeparation(document.querySelector('#slider5 > input').value);
+			gl.uniform1f(k5, val);
+		});
+
+		function checkSeparation(val) {
+			console.log(val)
+			const badValues = [ 7, 13, 14, 15];
+			if (badValues.includes(val)) 
+				return checkSeparation(val + 1);
+			else
+				return val;
+		}
+
+		// -- Presets --
+
+		createPreset('1', () => {
+			slider1Update(.25);
+			slider2Update(.25);
+			slider3Update(.25);
+			slider4Update(.25);
+			slider5Update(6);
+		}).onclick();
+
+		createPreset('2', () => {
+			slider1Update(.2);
+			slider2Update(.2);
+			slider3Update(.2);
+			slider4Update(.2);
+			slider5Update(4);
+		});
+
+		createPreset('3', () => {
+			slider1Update(.5);
+			slider2Update(.2);
+			slider3Update(.2);
+			slider4Update(.2);
+			slider5Update(16);
+		});	
+	</script>
+</body>

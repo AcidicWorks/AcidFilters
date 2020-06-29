@@ -1,0 +1,41 @@
+* {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+.hide {
+	display: none;
+}
+.fade-in {
+	animation: fadein 1.5s;
+}
+@keyframes fadein {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
+.popup {
+	background-color: rgba(255, 0, 255, 0.5);
+	position: absolute;
+}
+#go-back-btn, #close-menu-btn {
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	background-color: transparent;
+	border-width: 0;
+	position: relative;
+	color: dodgerblue;
+}	
+#go-back-btn {
+	top: 0;
+	left: 0;
+#close-menu-btn {
+	top: 2px;
+	right: 2px;
+}
+.left-label {
+	text-align: right;
+	vertical-align: bottom;
+}
+#videoSource {
+	max-width: 50%;
+}

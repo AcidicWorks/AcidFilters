@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="style/style.css">
+
+<body>
+	<main role='main' class='container-fluid h-100'>
+		<div class='row h-100'>
+			<!-- VIDEO CANVAS -->
+			<div class='col-12 h-100'>
+				<video class='hide' id='video' autoplay playsinline></video>
+				<canvas id='canvas' onclick=toggleMenu()></canvas>
+			</div>
+			
+			<!-- ONBOARDING MENU -->
+			<div class='col-12 p-1 h3 popup fade-in hide' id='on-boarding' onclick=hideOnBoarding()>
+				Click image to display options
+			</div>
+			
+			<!-- OPTIONS MENU -->
+			<div class='col-lg-6 col-sm-12 popup fade-in hide' id='opt-menu'>
+				<!-- MENU BACK AND CLOSE BUTTONS -->
+				<div w-100>
+					<button class='fa fa-arrow-left fa-2x' id='go-back-btn' onclick=goToParentPage()></button>
+					<button class='fa fa-times fa-2x float-right' id='close-menu-btn' onclick=hideMenu()></button>
+				</div>
+				<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
+				<div class='d-flex flex-row bd-highlight mb-1'>
+					<label class='p-2 mb-0 bd-highlight left-label' for='videoSource'>Camera</label>
+					<select class='p-0 ml-2 bd-highlight h7' id='videoSource' class='form-control'></select>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='facingMode' onclick=toggleFacingMode()>
+						<img src='style/flipCamera.png' width='30'/>
+					</button>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='snapshot' onclick=saveSnapshot()>
+						<img src='style/photo.png' width='30'/>
+						<a id='snapshot-link' href='#'></a>
+						<img class='hide' id='snapshot-img'/>
+					</button>
+				</div>
+				<!-- SLIDER CONTROLS -->
+				<div class='range-field m-0 p-0'>
+					<form id='sliders'/>
+				</div>
+				<!-- PRESET BUTTONS -->
+				<div class='mb-3 mt-0 d-flex flex-row'>
+					<label class='left-label p-2 mb-0' id='presets-label' for='presets'>Presets</label>
+					<div class='d-flex flex-row' id='presets'/>
+				</div>					
+			</div>			
+			
+		</div>
+	</main>
+
+	<!-- SHADERS -->
+
+	<script id='vshader' type='text/plain'>
+		attribute vec2 position;
+		void main(void) {
+			gl_Position = vec4(position, 0, 1);
+		}
+	</script>
+
+	<script id='fshader' type='text/plain'>
+		precision mediump float;
+		uniform sampler2D sampler0;
+		uniform float width, height;
+		uniform float K1, K2;
+		vec3 posterize(vec3 rgb) {
+			float gamma = .6;
+			float ncolors = 8.;
+			rgb = pow(rgb, vec3(gamma, gamma, gamma));
+			rgb = rgb * ncolors;
+			rgb = floor(rgb);
+			rgb = rgb / ncolors;
+			return pow(rgb, vec3(1./gamma));
+		}
+		void main(void) {
+			const mat3 Gx = mat3(-1, 0, 1, -2, 0, 2, -1, 0, 1);
+			const mat3 Gy = mat3(-1, -2, -1, 0, 0, 0, 1, 2, 1);
+			vec2 dim = vec2(width, height);
+			vec2 p = vec2(gl_FragCoord.x, height - gl_FragCoord.y);
+			vec2 x0y0 = (p + vec2(-1, -1)) / dim;
+			vec2 x0y1 = (p + vec2(-1,  0)) / dim;
+			vec2 x0y2 = (p + vec2(-1,  1)) / dim;
+			vec2 x1y0 = (p + vec2(0, -1)) / dim;
+			vec2 x1y1 = (p + vec2(0,  0)) / dim;
+			vec2 x1y2 = (p + vec2(0,  1)) / dim;
+			vec2 x2y0 = (p + vec2(1, -1)) / dim;
+			vec2 x2y1 = (p + vec2(1,  0)) / dim;
+			vec2 x2y2 = (p + vec2(1,  1)) / dim;
+
+			vec4 tx0y0 = texture2D(sampler0, x0y0);
+			vec4 tx0y1 = texture2D(sampler0, x0y1);
+			vec4 tx0y2 = texture2D(sampler0, x0y2);
+			vec4 tx1y0 = texture2D(sampler0, x1y0);
+			vec4 tx1y1 = texture2D(sampler0, x1y1);
+			vec4 tx1y2 = texture2D(sampler0, x1y2);
+			vec4 tx2y0 = texture2D(sampler0, x2y0);
+			vec4 tx2y1 = texture2D(sampler0, x2y1);
+			vec4 tx2y2 = texture2D(sampler0, x2y2);
+
+			mat3 id = Gx;
+			vec4 colorGx =
+				id[0][0] * tx0y0 + id[0][1] * tx1y0 + id[0][2] * tx2y0 +
+				id[1][0] * tx0y1 + id[1][1] * tx1y1 + id[1][2] * tx2y1 +
+				id[2][0] * tx0y2 + id[2][1] * tx1y2 + id[2][2] * tx2y2;
+			id = Gy;
+			vec4 colorGy =
+				id[0][0] * tx0y0 + id[0][1] * tx1y0 + id[0][2] * tx2y0 +
+				id[1][0] * tx0y1 + id[1][1] * tx1y1 + id[1][2] * tx2y1 +
+				id[2][0] * tx0y2 + id[2][1] * tx1y2 + id[2][2] * tx2y2;
+
+			float fColorGx = colorGx.r;
+			float fColorGy = colorGy.r;
+			float norm = fColorGx * fColorGx + fColorGy * fColorGy;
+			norm = clamp(1. - K1*sqrt(norm), 0., 1.);
+			vec4 edges = vec4(norm, norm, norm, 1.);
+			vec2 st = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
+			vec3 rgb = texture2D(sampler0, st).rgb;
+			rgb = posterize(rgb);
+			rgb = clamp(rgb+K2, 0., 1.);
+			gl_FragColor = vec4(rgb, 1.) * edges;
+		}
+	</script>
+
+	<!-- MAIN PROGRAM -->
+
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" crossorigin="anonymous"></script>
+	<script src='js/webglShader.js'></script>
+	<script src='js/webglTexture.js'></script>
+	<script src='js/webcam.js'></script>
+	<script src='js/common.js?v=3'></script>
+
+	<script>
+		console.log('VERSION 5');
+
+		// -- Shader control knobs --
+		
+		const k1 = gl.getUniformLocation(program, 'K1');
+		const k2 = gl.getUniformLocation(program, 'K2');
+
+		// -- Sliders --
+
+		const slider1Update = createSlider('slider1', 'Line density', 0.5, 5, 0.1, () => {
+			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
+		});
+
+		const slider2Update = createSlider('slider2', 'Color', 0, 1, 0.01, () => {
+			gl.uniform1f(k2, document.querySelector('#slider2 > input').value);
+		});
+
+		// -- Presets --
+
+		createPreset('1', () => {
+			slider1Update(2);
+			slider2Update(.25);
+		}).onclick();
+
+		createPreset('2', () => {
+			slider1Update(1);
+			slider2Update(.5);
+		});
+</script>
+</body>

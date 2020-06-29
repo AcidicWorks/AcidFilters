@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="style/style.css">
+
+<body>
+	<main role='main' class='container-fluid h-100'>
+		<div class='row h-100'>
+			<!-- VIDEO CANVAS -->
+			<div class='col-12 h-100'>
+				<video class='hide' id='video' autoplay playsinline></video>
+				<canvas id='canvas' onclick=toggleMenu()></canvas>
+			</div>
+			
+			<!-- ONBOARDING MENU -->
+			<div class='col-12 p-1 h3 popup fade-in hide' id='on-boarding' onclick=hideOnBoarding()>
+				Click image to display options
+			</div>
+			
+			<!-- OPTIONS MENU -->
+			<div class='col-lg-6 col-sm-12 popup fade-in hide' id='opt-menu'>
+				<!-- MENU BACK AND CLOSE BUTTONS -->
+				<div w-100>
+					<button class='fa fa-arrow-left fa-2x' id='go-back-btn' onclick=goToParentPage()></button>
+					<button class='fa fa-times fa-2x float-right' id='close-menu-btn' onclick=hideMenu()></button>
+				</div>
+				<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
+				<div class='d-flex flex-row bd-highlight mb-1'>
+					<label class='p-2 mb-0 bd-highlight left-label' for='videoSource'>Camera</label>
+					<select class='p-0 ml-2 bd-highlight h7' id='videoSource' class='form-control'></select>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='facingMode' onclick=toggleFacingMode()>
+						<img src='style/flipCamera.png' width='30'/>
+					</button>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='snapshot' onclick=saveSnapshot()>
+						<img src='style/photo.png' width='30'/>
+						<a id='snapshot-link' href='#'></a>
+						<img class='hide' id='snapshot-img'/>
+					</button>
+				</div>
+				<!-- SLIDER CONTROLS -->
+				<div class='range-field m-0 p-0'>
+					<form id='sliders'/>
+				</div>
+				<!-- PRESET BUTTONS -->
+				<div class='mb-3 mt-0 d-flex flex-row'>
+					<label class='left-label p-2 mb-0' id='presets-label' for='presets'>Presets</label>
+					<div class='d-flex flex-row' id='presets'/>
+				</div>					
+			</div>			
+			
+		</div>
+	</main>
+
+	<!-- SHADERS -->
+
+	<script id='vshader' type='text/plain'>
+		attribute vec2 position;
+		void main(void) {
+			gl_Position = vec4(position, 0, 1);
+		}
+	</script>
+
+	<script id='fshader' type='text/plain'>
+		precision mediump float;
+		uniform sampler2D sampler0;
+		uniform float width, height;
+		uniform float K1,K2;
+		void main() {
+			vec2 st = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
+			vec3 c = texture2D(sampler0, st).rgb;
+			float r = pow(c.r, K2);
+			float g = pow(c.g, K2);
+			float b = pow(c.b, K2);
+			if (r < 0.5)
+				r = (4.0 - 4.0*K1)*(r - 0.5)*(r - 0.5) + K1;
+			else
+				r = (2.0 - 2.0*K1)*r + 2.0*K1 - 1.0;
+			if (g < 0.5)
+				g = (4.0 - 4.0*K1)*(g - 0.5)*(g - 0.5) + K1;
+			else
+				g = (2.0 - 2.0*K1)*g + 2.0*K1 - 1.0;
+			if (b < 0.5)
+				b = (4.0 - 4.0*K1)*(b - 0.5)*(b - 0.5) + K1;
+			else
+				b = (2.0 - 2.0*K1)*b + 2.0*K1 - 1.0;
+			gl_FragColor = vec4(r, g, b, 1.);
+		}
+	</script>
+
+	<!-- MAIN PROGRAM -->
+
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" crossorigin="anonymous"></script>
+	<script src='js/webglShader.js'></script>
+	<script src='js/webglTexture.js'></script>
+	<script src='js/webcam.js'></script>
+	<script src='js/common.js?v=3'></script>
+
+	<script>
+		console.log('VERSION 5');
+
+		// -- Shader control knobs --
+		
+		const k1 = gl.getUniformLocation(program, 'K1');
+		const k2 = gl.getUniformLocation(program, 'K2');
+
+		// -- Sliders --
+
+		const slider1Update = createSlider('slider1', 'A', 0, 1, 0.01, () => {
+			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
+		});
+
+		const slider2Update = createSlider('slider2', 'B', 0, 4, 0.01, () => {
+			gl.uniform1f(k2, document.querySelector('#slider2 > input').value);
+		});
+
+		// -- Presets --
+
+		createPreset('1', () => {
+			slider1Update(.2);
+			slider2Update(1);
+		}).onclick();
+
+		createPreset('2', () => {
+			slider1Update(.2);
+			slider2Update(.5);
+		});
+	</script>
+</body>

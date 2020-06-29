@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="style/style.css">
+
+<body>
+	<main role='main' class='container-fluid h-100'>
+		<div class='row h-100'>
+			<!-- VIDEO CANVAS -->
+			<div class='col-12 h-100'>
+				<video class='hide' id='video' autoplay playsinline></video>
+				<canvas id='canvas' onclick=toggleMenu()></canvas>
+			</div>
+			
+			<!-- ONBOARDING MENU -->
+			<div class='col-12 p-1 h3 popup fade-in hide' id='on-boarding' onclick=hideOnBoarding()>
+				Click image to display options
+			</div>
+			
+			<!-- OPTIONS MENU -->
+			<div class='col-lg-6 col-sm-12 popup fade-in hide' id='opt-menu'>
+				<!-- MENU BACK AND CLOSE BUTTONS -->
+				<div w-100>
+					<button class='fa fa-arrow-left fa-2x' id='go-back-btn' onclick=goToParentPage()></button>
+					<button class='fa fa-times fa-2x float-right' id='close-menu-btn' onclick=hideMenu()></button>
+				</div>
+				<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
+				<div class='d-flex flex-row bd-highlight mb-1'>
+					<label class='p-2 mb-0 bd-highlight left-label' for='videoSource'>Camera</label>
+					<select class='p-0 ml-2 bd-highlight h7' id='videoSource' class='form-control'></select>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='facingMode' onclick=toggleFacingMode()>
+						<img src='style/flipCamera.png' width='30'/>
+					</button>
+					<button class='p-0 ml-2 bd-highlight btn btn-primary' id='snapshot' onclick=saveSnapshot()>
+						<img src='style/photo.png' width='30'/>
+						<a id='snapshot-link' href='#'></a>
+						<img class='hide' id='snapshot-img'/>
+					</button>
+				</div>
+				<!-- SLIDER CONTROLS -->
+				<div class='range-field m-0 p-0'>
+					<form id='sliders'/>
+				</div>
+				<!-- PRESET BUTTONS -->
+				<div class='mb-3 mt-0 d-flex flex-row'>
+					<label class='left-label p-2 mb-0' id='presets-label' for='presets'>Presets</label>
+					<div class='d-flex flex-row' id='presets'/>
+				</div>					
+			</div>			
+			
+		</div>
+	</main>
+
+	<!-- SHADERS -->
+
+	<script id='vshader' type='text/plain'>
+		attribute vec2 position;
+		void main(void) {
+			gl_Position = vec4(position, 0, 1);
+		}
+	</script>
+
+	<script id='fshader' type='text/plain'>
+		precision mediump float;
+		uniform sampler2D sampler0;
+		uniform float width, height;
+		uniform float K1, K2, K3, K4;
+		const int radius = 3;
+		const float n = float((radius + 1) * (radius + 1));
+		const vec3 W = vec3(0.2125, 0.7154, 0.0721);
+
+		vec3 saturate(vec3 irgb) {
+			vec3 L = vec3(K1, K2, K3);
+			float luminance = dot(irgb, W);
+			vec2 st = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
+			vec3 target = L*vec3(luminance, luminance, luminance);
+			return mix(target, irgb, K4);
+		}
+
+		void main (void) {
+			vec2 src_size = vec2(width, height);
+			vec2 uv = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
+			vec3 m[4];
+			vec3 s[4];
+			m[0] = m[1] = m[2] = m[3] = vec3(0.0);
+			s[0] = s[1] = s[2] = s[3] = vec3(0.0);
+			for (int j = -radius; j <= 0; ++j)  {
+				for (int i = -radius; i <= 0; ++i)  {
+					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
+					m[0] += c;
+					s[0] += c * c;
+				}
+			}
+			for (int j = -radius; j <= 0; ++j)  {
+				for (int i = 0; i <= radius; ++i)  {
+					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
+					m[1] += c;
+					s[1] += c * c;
+				}
+			}
+			for (int j = 0; j <= radius; ++j)  {
+				for (int i = 0; i <= radius; ++i)  {
+					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
+					m[2] += c;
+					s[2] += c * c;
+				}
+			}
+			for (int j = 0; j <= radius; ++j)  {
+				for (int i = -radius; i <= 0; ++i)  {
+					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
+					m[3] += c;
+					s[3] += c * c;
+				}
+			}
+			float min_sigma2 = 1e+2;
+			for (int k = 0; k < 4; ++k) {
+				m[k] /= n;
+				s[k] = abs(s[k] / n - m[k] * m[k]);
+				float sigma2 = s[k].r + s[k].g + s[k].b;
+				if (sigma2 < min_sigma2) {
+					min_sigma2 = sigma2;
+					gl_FragColor = vec4(saturate(m[k]), 1.0);
+				}
+			}
+		}
+	</script>
+
+	<!-- MAIN PROGRAM -->
+
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" crossorigin="anonymous"></script>
+	<script src='js/webglShader.js'></script>
+	<script src='js/webglTexture.js'></script>
+	<script src='js/webcam.js'></script>
+	<script src='js/common.js?v=3'></script>
+
+	<script>
+		console.log('VERSION 5');
+
+		// -- Shader control knobs --
+
+		const k1 = gl.getUniformLocation(program, 'K1');
+		const k2 = gl.getUniformLocation(program, 'K2');
+		const k3 = gl.getUniformLocation(program, 'K3');
+		const k4 = gl.getUniformLocation(program, 'K4');
+
+		// -- Sliders --
+
+		const slider1Update = createSlider('slider1', 'Red', 0, 2, 0.01, () => {
+			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
+		});
+
+		const slider2Update = createSlider('slider2', 'Green', 0, 2, 0.01, () => {
+			gl.uniform1f(k2, document.querySelector('#slider2 > input').value);
+		});
+
+		const slider3Update = createSlider('slider3', 'Blue', 0, 2, 0.01, () => {
+			gl.uniform1f(k3, document.querySelector('#slider3 > input').value);
+		});
+
+		const slider4Update = createSlider('slider4', 'Saturation', -10, 10, 0.1, () => {
+			gl.uniform1f(k4, document.querySelector('#slider4 > input').value);
+		});
+		slider4Update(5);
+
+		// -- Presets --
+
+		const rgb = [
+			[0.5, 0.5, 0.5],
+			[0.9, 1.1, 1.4],
+			[1.2, 1.1, 2.0],
+			[1.6, 0.8, 1.6],
+			[1.2, 1.1, 1.1]
+		];
+
+		for (let irgb = 0; irgb < rgb.length; irgb++) {
+			const p = createPreset((irgb+1).toString(), () => {
+				slider1Update(rgb[irgb][0]);
+				slider2Update(rgb[irgb][1]);
+				slider3Update(rgb[irgb][2]);
+			});
+			if (irgb === 0) p.onclick();
+		}
+	</script>
+</body>
