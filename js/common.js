@@ -67,10 +67,12 @@ document.addEventListener('DOMContentLoaded', function(event) {
                     if (isFrontCamera || isBackCamera) {
                         if (isFrontCamera) {
                             facingFrontId = camera.id;
+                            //facingCameraId = camera.id;
+                        }
+                        else {
+                            facingBackId = camera.id;
                             facingCameraId = camera.id;
                         }
-                        else
-                            facingBackId = camera.id;
                         if (facingFrontId && facingBackId) {
                             videoSelect.classList.add('hide');
                             document.querySelector('#facingMode').classList.remove('hide');
