@@ -10,6 +10,7 @@ const isMobileDevice =
     navigator.userAgent.match(/Windows Phone/i);
 
 // -- DOM elements --
+
 const menu = document.querySelector('#opt-menu');
 const videoSelect = document.querySelector('#videoSource');
 const video = document.querySelector('#video');
