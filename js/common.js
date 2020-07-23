@@ -1,4 +1,4 @@
-console.log('COMMON VERSION 8');
+console.log('COMMON VERSION 9');
 
 const isMobileDevice = 
     navigator.userAgent.match(/Android/i) ||
@@ -69,12 +69,10 @@ document.addEventListener('DOMContentLoaded', function(event) {
                         if (isFrontCamera) {
                             facingFrontId = camera.id;
                             facingCameraId = camera.id;
-                            alert('front');
                         }
                         else {
                             facingBackId = camera.id;
                             facingCameraId = camera.id;
-                            alert('back');
                         }
                         videoSelect.onchange();
                         if (facingFrontId && facingBackId) {
