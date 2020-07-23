@@ -67,19 +67,21 @@ document.addEventListener('DOMContentLoaded', function(event) {
                     if (isFrontCamera || isBackCamera) {
                         if (isFrontCamera) {
                             facingFrontId = camera.id;
-                            //facingCameraId = camera.id;
+                            facingCameraId = camera.id;
+                            alert('front');
                         }
                         else {
                             facingBackId = camera.id;
                             facingCameraId = camera.id;
+                            alert('back');
                         }
+                        videoSelect.onchange();
                         if (facingFrontId && facingBackId) {
                             videoSelect.classList.add('hide');
                             document.querySelector('#facingMode').classList.remove('hide');
                         }
-                    }
-                        
-                    if (videoSelect.length === 1 || label.indexOf('built-in') !== -1) {
+                    }   
+                    else if (videoSelect.length === 1 || label.indexOf('built-in') !== -1) {
                         option.setAttribute('selected', 'selected');
                         videoSelect.dispatchEvent(new Event('change'));
                     }							
