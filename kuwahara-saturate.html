@@ -176,7 +176,7 @@
 		];
 
 		for (let irgb = 0; irgb < rgb.length; irgb++) {
-			const p = createPreset((irgb+1).toString(), () => {
+			const p = createPreset((irgb+1).toString(), 'color4', () => {
 				slider1Update(rgb[irgb][0]);
 				slider2Update(rgb[irgb][1]);
 				slider3Update(rgb[irgb][2]);
