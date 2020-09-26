@@ -46,7 +46,7 @@
 	color: rgb(30,144,255) !important;
 }
 .color3 {
-	background-color: rgb(255,204,0) !important;
+	background: rgb(255,204,0) !important;
 }
 input[type=range]::-webkit-slider-thumb {
     background: rgb(50,105,50) !important;
