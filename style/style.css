@@ -13,7 +13,7 @@
 	to   { opacity: 1; }
 }
 .popup {
-	background-color: rgba(255, 0, 255, 0.5);
+	background-color: rgba(200, 200, 200, 0.5);
 	position: absolute;
 }
 #go-back-btn, #close-menu-btn {
@@ -23,11 +23,11 @@
 	background-color: transparent;
 	border-width: 0;
 	position: relative;
-	color: dodgerblue;
 }	
 #go-back-btn {
 	top: 0;
 	left: 0;
+}
 #close-menu-btn {
 	top: 2px;
 	right: 2px;
@@ -38,4 +38,27 @@
 }
 #videoSource {
 	max-width: 50%;
+}
+.color1 {
+	color: rgb(0,0,204) !important;
+}
+.color2 {
+	color: rgb(30,144,255) !important;
+}
+.color3 {
+	background: rgb(255,204,0) !important;
+}
+input[type=range]::-webkit-slider-thumb {
+    background: rgb(50,105,50) !important;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    background: rgb(50,205,50) !important;
+}
+.color4 {
+	background: rgb(255,26,0) !important;
+	color: white !important;
+}
+.color5 {
+	border-color: rgb(255,204,0) !important;
+	background: rgb(255,204,0) !important;
 }
