@@ -139,14 +139,14 @@
 
 		// -- Sliders --
 
-		const slider1Update = createSlider('slider1', 'Radius', 1, 10, 1, () => {
+		const slider1Update = createSlider('slider1', 'Radius', 1, 20, 1, () => {
 			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
 		});
 
 		// -- Presets --
 
 		createPreset('1', 'color4', () => {
-			slider1Update(5);
+			slider1Update(20);
 		}).onclick();
 	</script>
 </body>
