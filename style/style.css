@@ -55,6 +55,7 @@ input[type=range]::-webkit-slider-runnable-track {
     background: rgb(50,205,50) !important;
 }
 .color4 {
+	border-color: rgb(255,26,0) !important;
 	background: rgb(255,26,0) !important;
 	color: white !important;
 }
