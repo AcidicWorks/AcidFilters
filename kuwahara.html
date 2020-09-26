@@ -70,7 +70,7 @@
 		//const float n = float((radius + 1) * (radius + 1));
 		const int radius0 = 5;
 		void main (void) {
-			const int radius = radius0;
+			int radius = radius0;
 			float n = float((radius + 1) * (radius + 1));
 			vec2 src_size = vec2(width, height);
 			vec2 uv = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
