@@ -68,9 +68,10 @@
 		uniform float K1;
 		//const int radius = 5;
 		//const float n = float((radius + 1) * (radius + 1));
-		const int radius = 5;//int(K1);
+		//const int radius = 5;//int(K1);
 		//float n = float((radius + 1) * (radius + 1));
 		void main (void) {
+			float radius = int(K1);
 			float n = float((radius + 1) * (radius + 1));
 			vec2 src_size = vec2(width, height);
 			vec2 uv = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
