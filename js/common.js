@@ -176,7 +176,7 @@ function createSlider(id, name, min, max, step, oninput) {
 
 function createPreset(name, colorClass, onclick) {
     const preset = document.createElement('button');
-    preset.className = 'btn btn-primary btn-block' + colorClass;
+    preset.className = 'btn btn-primary btn-block ' + colorClass;
     preset.innerText = name;
     preset.onclick = onclick;
     const block = document.createElement('div');
