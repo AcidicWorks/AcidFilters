@@ -65,13 +65,9 @@
 		precision mediump float;
 		uniform sampler2D sampler0;
 		uniform float width, height;
-		uniform float K1;
 		const int radius = 6;
 		const float n = float((radius + 1) * (radius + 1));
 		void main (void) {
-			for (int X=0; X<10; X++) {
-				if (float(X)>K1) break;
-			}
 			vec2 src_size = vec2(width, height);
 			vec2 uv = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
 			vec3 m[4];
@@ -132,6 +128,7 @@
 	<script>
 		console.log('VERSION 5');
 
+		/*
 		// -- Shader control knobs --
 
 		const k1 = gl.getUniformLocation(program, 'K1');
@@ -147,5 +144,6 @@
 		createPreset('1', 'color4', () => {
 			slider1Update(5);
 		}).onclick();
+		*/
 	</script>
 </body>
