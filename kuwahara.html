@@ -116,20 +116,20 @@
 				}
 			}
 			for (int j = -radius0; j <= 0; ++j)  {
-				for (int i = 0; i <= radius; ++i)  {
+				for (int i = 0; i <= K1; ++i)  {
 					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
 					m[1] += c;
 					s[1] += c * c;
 				}
 			}
 			for (int j = 0; j <= radius; ++j)  {
-				for (int i = 0; i <= radius; ++i)  {
+				for (int i = 0; i <= K1; ++i)  {
 					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
 					m[2] += c;
 					s[2] += c * c;
 				}
 			}
-			for (int j = 0; j <= radius; ++j)  {
+			for (int j = 0; j <= K1; ++j)  {
 				for (int i = -radius0; i <= 0; ++i)  {
 					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
 					m[3] += c;
@@ -175,7 +175,7 @@
 		// -- Presets --
 
 		createPreset('1', 'color4', () => {
-			slider1Update(20);
+			slider1Update(5);
 		}).onclick();
 	</script>
 </body>
