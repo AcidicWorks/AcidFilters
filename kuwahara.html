@@ -66,17 +66,15 @@
 		uniform sampler2D sampler0;
 		uniform float width, height;
 		uniform float K1;
-		//const int radius = 5;
-		//const float n = float((radius + 1) * (radius + 1));
+		const int radius = 5;
+		const float n = float((radius + 1) * (radius + 1));
 		void main (void) {
-			float n = (K1 + 1.) * (K1 + 1.);
 			vec2 src_size = vec2(width, height);
 			vec2 uv = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
 			vec3 m[4];
 			vec3 s[4];
 			m[0] = m[1] = m[2] = m[3] = vec3(0.0);
 			s[0] = s[1] = s[2] = s[3] = vec3(0.0);
-			/*
 			for (int j = -radius; j <= 0; ++j)  {
 				for (int i = -radius; i <= 0; ++i)  {
 					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
@@ -101,35 +99,6 @@
 			for (int j = 0; j <= radius; ++j)  {
 				for (int i = -radius; i <= 0; ++i)  {
 					vec3 c = texture2D(sampler0, uv + vec2(i,j) / src_size).rgb;
-					m[3] += c;
-					s[3] += c * c;
-				}
-			}
-			*/
-			for (float j = -K1; j <= 0.; ++j)  {
-				for (float i = -K1; i <= 0.; ++i)  {
-					vec3 c = texture2D(sampler0, uv + vec2(int(i),int(j)) / src_size).rgb;
-					m[0] += c;
-					s[0] += c * c;
-				}
-			}
-			for (float j = -K1; j <= 0.; ++j)  {
-				for (float i = 0.; i <= K1; ++i)  {
-					vec3 c = texture2D(sampler0, uv + vec2(int(i),int(j)) / src_size).rgb;
-					m[1] += c;
-					s[1] += c * c;
-				}
-			}
-			for (float j = 0.; j <= K1; ++j)  {
-				for (float i = 0.; i <= K1; ++i)  {
-					vec3 c = texture2D(sampler0, uv + vec2(int(i),int(j)) / src_size).rgb;
-					m[2] += c;
-					s[2] += c * c;
-				}
-			}
-			for (float j = 0.; j <= K1; ++j)  {
-				for (float i = -K1; i <= 0.; ++i)  {
-					vec3 c = texture2D(sampler0, uv + vec2(int(i),int(j)) / src_size).rgb;
 					m[3] += c;
 					s[3] += c * c;
 				}
