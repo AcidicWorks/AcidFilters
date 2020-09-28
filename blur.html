@@ -122,15 +122,15 @@
 
 		// -- Sliders --
 
-		const slider1Update = createSlider('slider1', 'Gamma', 0, 1, 0.01, () => {
+		const slider1Update = createSlider('slider1', '', 0, 1, 0.01, () => {
 			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
 		});
 
-		const slider2Update = createSlider('slider2', 'Number of colors', 2, 40, 1, () => {
+		const slider2Update = createSlider('slider2', '', 2, 40, 1, () => {
 			gl.uniform1f(k2, document.querySelector('#slider2 > input').value);
 		});
 
-		const slider3Update = createSlider('slider3', 'Patch size', 1, 40, 1, () => {
+		const slider3Update = createSlider('slider3', '', 1, 40, 1, () => {
 			gl.uniform1f(k3, document.querySelector('#slider3 > input').value);
 		});
 
