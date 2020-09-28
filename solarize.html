@@ -21,34 +21,31 @@
 			
 			<!-- OPTIONS MENU -->
 			<div class='col-lg-6 col-sm-12 popup fade-in hide' id='opt-menu'>
-				<!-- MENU BACK AND CLOSE BUTTONS -->
-				<div w-100>
-					<button class='fa fa-arrow-left fa-2x color1' id='go-back-btn' onclick=goToParentPage()></button>
-					<button class='fa fa-times fa-2x float-right color2' id='close-menu-btn' onclick=hideMenu()></button>
-				</div>
-				<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
-				<div class='d-flex flex-row bd-highlight mb-1'>
-					<label class='p-2 mb-0 bd-highlight left-label' for='videoSource'>Camera</label>
-					<select class='p-0 ml-2 bd-highlight h7 rounded color5' id='videoSource' class='form-control'></select>
-					<button class='p-0 ml-2 bd-highlight btn hide color3' id='facingMode' onclick=toggleFacingMode()>
-						<img src='style/flipCamera.png' width='30'/>
-					</button>
-					<button class='p-0 ml-2 bd-highlight btn color3' id='snapshot' onclick=saveSnapshot()>
-						<img src='style/photo.png' width='30'/>
-						<a id='snapshot-link' href='#'></a>
-						<img class='hide' id='snapshot-img'/>
-					</button>
+				<div>
+					<div class='float-left w-100'>
+						<button class='btn float-left fa fa-arrow-left fa-2x color1 pt-1 ml-1' id='go-back-btn' onclick=goToParentPage()></button>
+						<div class='float-left d-flex flex-row bd-highlight pt-1 ml-2'>
+							<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
+							<select class='p-0 ml-2 bd-highlight h7 rounded color5' id='videoSource' class='form-control'></select>
+							<button class='p-0 ml-2 bd-highlight btn hide color5' id='facingMode' onclick=toggleFacingMode()>
+								<img src='style/flipCamera.png' width='30'/>
+							</button>
+							<button class='p-0 ml-2 bd-highlight btn color3' id='snapshot' onclick=saveSnapshot()>
+								<img src='style/photo.png' width='30'/>
+								<a id='snapshot-link' href='#'></a>
+								<img class='hide' id='snapshot-img'/>
+							</button>
+							<!-- PRESET BUTTONS -->
+							<div class='d-flex flex-row ml-2' id='presets'/>
+						</div>
+					</div>
+					<button class='btn fa fa-times fa-2x color2 float-right pt-0 pr-1' id='close-menu-btn' onclick=hideMenu()></button>
 				</div>
 				<!-- SLIDER CONTROLS -->
-				<div class='range-field m-0 p-0'>
-					<form id='sliders'/>
+				<div class='w-100 d-flex flex-row range-field pt-4'>
+					<form class='w-100' id='sliders'/>
 				</div>
-				<!-- PRESET BUTTONS -->
-				<div class='mb-3 mt-0 d-flex flex-row'>
-					<label class='left-label p-2 mb-0' id='presets-label' for='presets'>Presets</label>
-					<div class='d-flex flex-row' id='presets'/>
-				</div>					
-			</div>			
+			</div>						
 		</div>
 	</main>
 
@@ -99,11 +96,11 @@
 
 		// -- Sliders --
 
-		const slider1Update = createSlider('slider1', 'A', 0, 1, 0.01, () => {
+		const slider1Update = createSlider('slider1', '', 0, 1, 0.01, () => {
 			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
 		});
 
-		const slider2Update = createSlider('slider2', 'B', 0, 4, 0.01, () => {
+		const slider2Update = createSlider('slider2', '', 0, 4, 0.01, () => {
 			gl.uniform1f(k2, document.querySelector('#slider2 > input').value);
 		});
 
