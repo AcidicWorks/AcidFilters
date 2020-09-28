@@ -44,11 +44,6 @@ document.addEventListener('DOMContentLoaded', function(event) {
         snapshot.parentNode.removeChild(snapshot);
     }
 
-    if (document.querySelector('#presets').childElementCount === 0) {
-        let presetsLabel = document.querySelector('#presets-label');
-        presetsLabel.parentNode.removeChild(presetsLabel);
-    }
-
     setupCamera(video, {video:true}, (err, stream) => {
         if (err)
             alert(err);
