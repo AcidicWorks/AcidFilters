@@ -21,15 +21,13 @@
 			
 			<!-- OPTIONS MENU -->
 			<div class='col-lg-6 col-sm-12 popup fade-in hide' id='opt-menu'>
-				<!-- MENU BACK AND CLOSE BUTTONS -->
 				<div>
 					<div class='float-left w-100'>
 						<button class='btn float-left fa fa-arrow-left fa-2x color1 pt-1 ml-1' id='go-back-btn' onclick=goToParentPage()></button>
-
 						<div class='float-left d-flex flex-row bd-highlight pt-1 ml-2'>
 							<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
 							<select class='p-0 ml-2 bd-highlight h7 rounded color5' id='videoSource' class='form-control'></select>
-							<button class='p-0 ml-2 bd-highlight btn hide' id='facingMode' onclick=toggleFacingMode()>
+							<button class='p-0 ml-2 bd-highlight btn hide color5' id='facingMode' onclick=toggleFacingMode()>
 								<img src='style/flipCamera.png' width='30'/>
 							</button>
 							<button class='p-0 ml-2 bd-highlight btn color3' id='snapshot' onclick=saveSnapshot()>
@@ -37,12 +35,10 @@
 								<a id='snapshot-link' href='#'></a>
 								<img class='hide' id='snapshot-img'/>
 							</button>
-
 							<!-- PRESET BUTTONS -->
 							<div class='d-flex flex-row ml-2' id='presets'/>
 						</div>
 					</div>
-
 					<button class='btn fa fa-times fa-2x color2 float-right pt-0 pr-1' id='close-menu-btn' onclick=hideMenu()></button>
 				</div>
 				<!-- SLIDER CONTROLS -->
