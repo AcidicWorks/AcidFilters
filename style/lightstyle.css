@@ -7,18 +7,17 @@ body {
 }
 
 .title {
-    font-size: 4vh;
+    font-size: 4.25vh;
     font-weight: bold;
 }
 
 .description {
     color: gray;
-    font-size: 2.5vh
+    font-size: 2.25vh
     font-weight: lighter;
 }
 
 menu {
-    // margin: 1em 0 0 0;
     padding: 0;
 }
 
@@ -26,6 +25,7 @@ menu {
     margin: .5em 0 0 0;
     font-size: 4.25vh;
     font-weight: bold;
+    color: white;
 }
 
 menu {
