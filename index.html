@@ -50,10 +50,14 @@
   <script>
     const list = document.querySelector('.list');
     for (const li of list.children) {
-      const R = Math.floor(Math.random() * 256);
-      const G = Math.floor(Math.random() * 256);
-      const B = Math.floor(Math.random() * 256);
+      const R = Math.floor(brighten(Math.random() * 256));
+      const G = Math.floor(brighten(Math.random() * 256));
+      const B = Math.floor(brighten(Math.random() * 256));
       li.style.backgroundColor = `rgb(${R},${G},${B})`; 
+    }
+    
+    function brighten(x) {
+      return 16 * Math.sqrt(x);
     }
   </script>
 </body>
