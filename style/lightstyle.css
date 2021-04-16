@@ -7,6 +7,7 @@ body {
 }
 
 .title {
+    color: gray;
     font-size: 4.25vh;
     font-weight: bold;
 }
