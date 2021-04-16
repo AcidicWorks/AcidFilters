@@ -56,7 +56,10 @@
   <script>
     const list = document.querySelector('.list');
     for (const li of list.children) {
-      li.style.backgroundColor = 'green';    
+      const R = Math.random() * 255;
+      const G = Math.random() * 255;
+      const B = Math.random() * 255;
+      li.style.backgroundColor = `rgb(${R},${G},${B})`; 
     }
   </script>
 </body>
