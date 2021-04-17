@@ -58,7 +58,7 @@
       li.onclick = () => { 
         window.location.href = link.href; 
       };
-      li.onmouseover () => {
+      li.onmouseover = () => {
         link.dispatchEvent(new Event('mouseover'));
       };
     }
