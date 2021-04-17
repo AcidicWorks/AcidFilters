@@ -59,7 +59,7 @@
         window.location.href = link.href; 
       };
       li.onmouseover = () => {
-        link.dispatchEvent(new Event('mouseenter'));
+        link.style.textDecoration = 'underline';
       };
     }
     
