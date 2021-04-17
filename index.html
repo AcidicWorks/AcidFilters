@@ -58,9 +58,11 @@
       li.onclick = () => { 
         window.location.href = link.href; 
       };
-      li.onmouseover = () => {
+      li.onmouseenter = () => {
         link.style.textDecoration = 'underline';
-        link.style.text.color = 'red';
+      };
+      li.onmouseleave = () => {
+        link.style.textDecoration = '';
       };
     }
     
