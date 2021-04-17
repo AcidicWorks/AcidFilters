@@ -53,10 +53,13 @@
       const R = Math.floor(brighten(Math.random() * 256));
       const G = Math.floor(brighten(Math.random() * 256));
       const B = Math.floor(brighten(Math.random() * 256));
-      li.style.backgroundColor = `rgb(${R},${G},${B})`; 
+      li.style.backgroundColor = `rgb(${R},${G},${B})`;
+      const link = li.querySelector('a');
       li.onclick = () => { 
-        var href = li.querySelector('a').attr('href');
-        window.location.href = href; 
+        window.location.href = link.href; 
+      };
+      li.onmouseover () => {
+        link.dispatchEvent(new Event('mouseover'));
       };
     }
     
