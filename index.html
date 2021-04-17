@@ -54,6 +54,10 @@
       const G = Math.floor(brighten(Math.random() * 256));
       const B = Math.floor(brighten(Math.random() * 256));
       li.style.backgroundColor = `rgb(${R},${G},${B})`; 
+      li.onclick = () => { 
+        var href = li.querySelector('a').attr('href');
+        window.location.href = href; 
+      };
     }
     
     function brighten(x) {
