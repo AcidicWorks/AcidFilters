@@ -1,5 +1,3 @@
-console.log('COMMON VERSION 9');
-
 const isMobileDevice = 
     navigator.userAgent.match(/Android/i) ||
     navigator.userAgent.match(/webOS/i) ||
@@ -35,6 +33,8 @@ let animID = undefined;
 let facingCameraId = undefined;
 let facingFrontId = undefined;
 let facingBackId = undefined;
+
+hideMenu();
 
 // -- DOM events --
 
@@ -91,21 +91,10 @@ videoSelect.onchange = () => {
 
 // -- Menu tasks --
 
-function showOnBoarding() {
-    let onboarding = document.querySelector('#on-boarding');
-    if (onboarding) {
-        if (isMobileDevice) 
-            onboarding.innerHTML = onboarding.innerHTML.replace('Click', 'Touch');
-        onboarding.style.display = 'block';
-    }
-}
-
 function hideOnBoarding() {
     let onboarding = document.querySelector('#on-boarding');
-    if (onboarding) {
-        onboarding.style.display = 'none';
-        onboarding.parentNode.removeChild(onboarding);
-    }
+    if (onboarding) 
+        onboarding.classList.add('fade-out');
 }
 
 function goToParentPage() {
@@ -113,7 +102,6 @@ function goToParentPage() {
 }
 
 function showMenu() {
-    hideOnBoarding();
     menu.style.display = 'block';
 }
 
@@ -146,20 +134,20 @@ function saveSnapshot() {
 }
 
 function createSlider(id, name, min, max, step, oninput) {
-    const slider = document.createElement('div');
-    slider.id = id;
-    slider.className = 'd-flex flex-row bd-highlight mb-3 ml-4';
     const label = document.createElement('div');
-    label.className = 'p-2 bd-highlight flex-nowrap right-label';
+    label.className = 'slider-label';
     label.for = id;
     label.innerText = name;
     const input = document.createElement('input');
-    input.className = 'col-sm-8 custom-range';
+    input.className = 'slider-input';
     input.type = 'range';
     input.min = min;
     input.max = max;
     input.step = step
     input.oninput = oninput;
+    const slider = document.createElement('div');
+    slider.className = 'slider';
+    slider.id = id;
     slider.appendChild(input);
     slider.appendChild(label);
     document.querySelector('#sliders').appendChild(slider);
@@ -169,16 +157,12 @@ function createSlider(id, name, min, max, step, oninput) {
     };
 }
 
-function createPreset(name, colorClass, onclick) {
+function createPreset(name, onclick) {
     const preset = document.createElement('button');
-    preset.className = 'btn btn-primary btn-block ' + colorClass;
+    preset.className = 'preset';
     preset.innerText = name;
     preset.onclick = onclick;
-    const block = document.createElement('div');
-    block.className = 'presets m-2';
-    block.style.width = '2em';
-    block.appendChild(preset);
-    document.querySelector('#presets').appendChild(block);
+    document.querySelector('#presets').appendChild(preset);
     return preset;
 }	
 
@@ -195,7 +179,7 @@ function resizeCanvas() {
 function startVideo(id) {
     const constraints = {
         video: { 
-            width: 1280,
+            width: video.videoWidth,
             deviceId: id ? { exact:id } : null
         }
     };
@@ -206,7 +190,7 @@ function startVideo(id) {
         else {
             resizeCanvas();
             startAnimation();
-            showOnBoarding();
+            hideOnBoarding();
         }
     });
 }

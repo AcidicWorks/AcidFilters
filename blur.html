@@ -1,52 +1,45 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" crossorigin="anonymous">
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous">
 <link rel="stylesheet" href="style/style.css">
 
 <body>
-	<main role='main' class='container-fluid h-100'>
-		<div class='row h-100'>
-			<!-- VIDEO CANVAS -->
-			<div class='col-12 h-100'>
-				<video class='hide' id='video' autoplay playsinline></video>
-				<canvas id='canvas' onclick=toggleMenu()></canvas>
-			</div>
-			
-			<!-- ONBOARDING MENU -->
-			<div class='col-12 p-1 h3 popup fade-in hide' id='on-boarding' onclick=hideOnBoarding()>
-				Click image to toggle options on/off
-			</div>
-			
-			<!-- OPTIONS MENU -->
-			<div class='col-lg-6 col-sm-12 popup fade-in hide' id='opt-menu'>
-				<div>
-					<div class='float-left w-100'>
-						<button class='btn float-left fa fa-arrow-left fa-2x color1 mt-2 ml-1' id='go-back-btn' onclick=goToParentPage()></button>
-						<div class='float-left d-flex flex-row bd-highlight pt-1 ml-2'>
-							<!-- VIDEO SOURCE CHOOSER AND SNAPSHOT -->
-							<select class='p-0 ml-2 bd-highlight h7 rounded color5' id='videoSource' class='form-control'></select>
-							<button class='p-0 ml-2 bd-highlight btn hide color5' id='facingMode' onclick=toggleFacingMode()>
-								<img src='style/flipCamera.png' width='30'/>
-							</button>
-							<button class='p-0 ml-2 bd-highlight btn color3' id='snapshot' onclick=saveSnapshot()>
-								<img src='style/photo.png' width='30'/>
-								<a id='snapshot-link' href='#'></a>
-								<img class='hide' id='snapshot-img'/>
-							</button>
-							<!-- PRESET BUTTONS -->
-							<div class='d-flex flex-row ml-2' id='presets'/>
-						</div>
-					</div>
-					<button class='btn fa fa-times fa-2x color2 float-right mt-1 pr-1' id='close-menu-btn' onclick=hideMenu()></button>
-				</div>
-				<!-- SLIDER CONTROLS -->
-				<div class='w-100 d-flex flex-row range-field pt-4'>
-					<form class='w-100' id='sliders'/>
-				</div>
-			</div>						
+	<main>
+		<!-- VIDEO CANVAS -->
+		<div>
+			<video class='hide' id='video' autoplay playsinline></video>
+			<canvas id='canvas' onclick=toggleMenu()></canvas>
 		</div>
+		
+		<!-- ONBOARDING MENU -->
+		<div class='popup' id='on-boarding'>
+			Click image to toggle options on/off
+		</div>
+		
+		<!-- OPTIONS MENU -->
+		<div class='popup fade-in hide' id='opt-menu'>
+			<div id='menu-top'>
+				<button class='btn-controls' id='go-back-btn' onclick=goToParentPage()>☰</button>
+				<div id='menu-camera'>
+					<!-- VIDEO SOURCE CHOOSER -->
+					<select class='cam-controls' id='videoSource'></select>
+					<button class='cam-controls hide' id='facingMode' onclick=toggleFacingMode() />
+					<!-- TAKE SNAPSHOT -->
+					<button class='cam-controls' id='snapshot' onclick=saveSnapshot() />
+					<div class='hide'>
+						<a id='snapshot-link' href='#'></a>
+						<img id='snapshot-img'/>
+					</div>
+				</div>
+				<button class='btn-controls' id='close-menu-btn' onclick=hideMenu()>⨯</button>
+			</div>
+			<!-- PRESET BUTTONS -->
+			<div id='menu-presets'>
+				<div id='presets'></div>
+			</div>
+			<!-- SLIDER CONTROLS -->
+			<form id='sliders'></form>
+		</div>						
 	</main>
 
 	<!-- SHADERS -->
@@ -103,17 +96,12 @@
 
 	<!-- MAIN PROGRAM -->
 
-	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" crossorigin="anonymous"></script>
-	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" crossorigin="anonymous"></script>
 	<script src='js/webglShader.js'></script>
 	<script src='js/webglTexture.js'></script>
-	<script src='js/webcam.js'></script>
+	<script src='js/webcam.js?v=0'></script>
 	<script src='js/common.js?v=9'></script>
 
 	<script>
-		console.log('VERSION 5');
-
 		// -- Shader control knobs --
 		
 		const k1 = gl.getUniformLocation(program, 'K1');
@@ -122,36 +110,19 @@
 
 		// -- Sliders --
 
-		const slider1Update = createSlider('slider1', '', 0, 1, 0.01, () => {
-			gl.uniform1f(k1, document.querySelector('#slider1 > input').value);
-		});
+		const slider1 = createSlider('slider1', '', 0, 1, 0.01, 
+			() => gl.uniform1f(k1, document.querySelector('#slider1 > input').value));
 
-		const slider2Update = createSlider('slider2', '', 2, 40, 1, () => {
-			gl.uniform1f(k2, document.querySelector('#slider2 > input').value);
-		});
+		const slider2 = createSlider('slider2', '', 2, 40, 1, 
+			() => gl.uniform1f(k2, document.querySelector('#slider2 > input').value));
 
-		const slider3Update = createSlider('slider3', '', 1, 40, 1, () => {
-			gl.uniform1f(k3, document.querySelector('#slider3 > input').value);
-		});
+		const slider3 = createSlider('slider3', '', 1, 40, 1, 
+			() => gl.uniform1f(k3, document.querySelector('#slider3 > input').value));
 
 		// -- Presets --
 
-		createPreset('1', 'color4', () => {
-			slider1Update(.6);
-			slider2Update(2);
-			slider3Update(1);
-		}).onclick();
-
-		createPreset('2', 'color4', () => {
-			slider1Update(.1);
-			slider2Update(5);
-			slider3Update(5);
-		});
-
-		createPreset('3', 'color4', () => {
-			slider1Update(.3);
-			slider2Update(20);
-			slider3Update(20);
-		});
+		createPreset('1', () => { slider1(.6); slider2(2); slider3(1); }).onclick();
+		createPreset('2', () => { slider1(.1); slider2(5); slider3(5); });
+		createPreset('3', () => { slider1(.3); slider2(20); slider3(20); });
 	</script>
 </body>

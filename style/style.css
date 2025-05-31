@@ -1,7 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,200&display=swap');
+
+:root {
+	--trans-color: rgba(251, 238, 239, 0.75);
+	--dark-color: rgb(188, 2, 18);
+	--light-color: rgb(245, 231, 172);
+	--main-font: 'Fira Sans', sans-serif;
+}
 * {
 	margin: 0 !important;
 	padding: 0 !important;
 }
+body {
+	font-family: var(--main-font);
+	color: var(--dark-color);
+}
+main {
+	display: flex; 
+	flex-direction: column;	
+}
+
+
 .hide {
 	display: none;
 }
@@ -12,58 +30,156 @@
 	from { opacity: 0; }
 	to   { opacity: 1; }
 }
-#on-boarding {
-	font-weight: bold;
-	font-size: 2em;
+.fade-out {
+    opacity: 0;
+    visibility: hidden;	
+	transition: opacity 3s ease-out, visibility 3s ease-out;
 }
+button:focus, input:focus, select:focus {
+	outline: none !important;
+}
+
+
 .popup {
-	background-color: rgba(200, 200, 200, 0.5);
+	background-color: var(--trans-color);
 	position: absolute;
 }
-#go-back-btn, #close-menu-btn {
+#on-boarding {
+	width: 100%;
+	height: 2rem;
+	font-size: 1.5rem;
+	text-align: center;
+}
+#opt-menu {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	width: 100%;
+	max-width: 768px;
+}
+#menu-top {
+	display:flex; 
+	justify-content: space-between;
+	margin: .5rem !important;
+}
+#menu-camera {
+	 display: flex; 
+	 gap: .5rem;
+}
+#menu-presets {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.btn-controls {
 	background-position: center;
 	background-repeat: no-repeat;
 	background-size: cover;
 	background-color: transparent;
 	border-width: 0;
+	cursor: pointer;
 	position: relative;
+	line-height: 1.5rem;
+	height: 1rem;
+	font-weight: bold;
+	margin-top: 2rem;
 }	
 #go-back-btn {
+	color: var(--dark-color);
 	top: 0;
 	left: 0;
+	font-size: 3rem;
 }
 #close-menu-btn {
-	top: 2px;
-	right: 2px;
+	color: var(--dark-color);
+	top: 0;
+	right: 0;
+	font-size: 5rem;
+	margin-top: -.8rem !important;
+}
+.cam-controls {
+	height: 1.75rem;
+	border: 0;
+	padding: 0;
+	border-radius: .3rem;
+}
+#videoSource {
+	font-family: var(--main-font);
+	background-color: var(--light-color);
+	color: var(--dark-color);
+	cursor: pointer;
+}
+#facingMode {
+	width: 1.75rem;
+	background-image: url("camera-flip.svg"); 
+	background-position: center; 
+	background-size: 80% auto; 
+	background-repeat: no-repeat; 
+	background-color: var(--light-color);
+	cursor: pointer;
+}
+#snapshot {
+	width: 1.75rem;
+	background-image: url("camera.svg"); 
+	background-position: center; 
+	background-size: 80% auto; 
+	background-repeat: no-repeat; 
+	background-color: var(--light-color);
+	cursor: pointer;
 }
 .left-label {
 	text-align: right;
 	vertical-align: bottom;
 }
-#videoSource {
-	max-width: 50%;
+.slider-label {
+    flex: 1 0 8rem;
 }
-.color1 {
-	color: rgb(0,0,204) !important;
+.slider-input {
+    flex: 1 1 100%;
 }
-.color2 {
-	color: rgb(30,144,255) !important;
+.slider {
+	display: flex; 
+	gap: .5rem; 
+	padding-left: 6rem !important;
 }
-.color3 {
-	background: rgb(255,204,0) !important;
+input[type="range"] {
+	-webkit-appearance: none;
+	background: transparent;
+	cursor: pointer;
 }
 input[type=range]::-webkit-slider-thumb {
-    background: rgb(50,105,50) !important;
+	-webkit-appearance: none;
+    background-color: var(--dark-color);
+	width: 16px;
+	height: 16px;	
+	border-radius: .5rem;
+	margin-top: -.25rem;
 }
 input[type=range]::-webkit-slider-runnable-track {
-    background: rgb(50,205,50) !important;
+    background: var(--light-color);
+	border-radius: .5rem;
+	height: .5rem;
 }
-.color4 {
-	border-color: rgb(255,26,0) !important;
-	background: rgb(255,26,0) !important;
-	color: white !important;
+.preset {
+	font-family: var(--main-font);
+	font-size: 1.25rem;
+	border-color: var(--dark-color);
+	background: var(--dark-color);
+	color: var(--light-color);
+	border: none; 
+	border-radius: 1rem; 
+	width: 1.75rem; 
+	height: 1.75rem; 
+	cursor: pointer;
 }
-.color5 {
-	border-color: rgb(255,204,0) !important;
-	background: rgb(255,204,0) !important;
+#presets {
+	display: flex;
+	gap: .5rem;
+}
+#sliders {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	width: 100%;
+	margin: .5rem !important;
 }

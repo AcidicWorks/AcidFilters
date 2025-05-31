@@ -31,7 +31,7 @@ function discoverCameras(callback) {
 		for (let i = 0; i < deviceInfos.length; i++) {
 			let deviceInfo = deviceInfos[i];
 			if (deviceInfo.kind === 'videoinput') 
-				callback(null, { 'label':(deviceInfo.label || 'Camera'), 'id':deviceInfo.deviceId });
+				callback(null, { 'label':(deviceInfo.label.split('(')[0] || 'Camera'), 'id':deviceInfo.deviceId });
 		}
 	}
 

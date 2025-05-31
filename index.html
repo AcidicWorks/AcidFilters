@@ -2,50 +2,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 <link rel="stylesheet" href="style/lightstyle.css">
 
 <body> 
-  <main role='main' class='container-fluid test'>
-    <div class='row'>
-      <div class='col-12'>
-        <div class='title'>
-          ACID FILTERS
-        </div>
-        <div class='description'>         
-          <div>Real-time webcam filters for laptop and mobile device cameras</div>
-        </div>
+  <main>
+    <div>
+      <div class='title'>
+        ACID FILTERS
+      </div>
+      <div class='description'>         
+        <div>Real-time webcam filters for laptop and mobile device cameras</div>
       </div>
     </div>
 
-    <div class='row'>
-      <div class='col-12'>
-        <menu class='list'> 
-          <li><a href='blur.html'>Brainwash</a></li>
-          <li><a href='crosshatch.html'>Crosshatch</a></li>
-          <li><a href='saturate.html'>Saturation</a></li>
-          <li><a href='sobel.html'>Edgy</a></li>
-          <li><a href='solarize.html'>Ray-O-Gram</a></li>
-          <li><a href='solarize-colored.html'>Drugs</a></li>
-          <li><a href='kuwahara.html'>Painterly</a></li>
-          <li><a href='kuwahara-saturate.html'>Painterlier</a></li>
-        </menu>
-      </div>  
-    </div>
+    <menu class='list'> 
+      <li><a href='blur.html'>Brainwash</a></li>
+      <li><a href='crosshatch.html'>Crosshatch</a></li>
+      <li><a href='saturate.html'>Saturation</a></li>
+      <li><a href='sobel.html'>Edgy</a></li>
+      <li><a href='solarize.html'>Ray-O-Gram</a></li>
+      <li><a href='solarize-colored.html'>Drugs</a></li>
+      <li><a href='kuwahara.html'>Painterly</a></li>
+      <li><a href='kuwahara-saturate.html'>Painterlier</a></li>
+      <li><a href='test.html'>TEST</a></li>
+    </menu>
 
-    <div class='row'>
-      <div class='col-12'>
-        <div class='description'> 
-          &copy; 2020 Jonas Geduldig
-          <br><a href='https://github.com/AcidicWorks'>AcidicWorks</a>
-        </div>
-      </div>  
-    </div>
+    <a href='camera-specs.html'>Camera specs</a>
   </main>
 
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+  <footer class='xdescription'> 
+    &copy; 2020 Jonas Geduldig
+    <span><a href='https://github.com/AcidicWorks'>AcidicWorks</a></span>
+  </footer>
 
   <script>
     const list = document.querySelector('.list');
@@ -55,15 +43,10 @@
       const B = Math.floor(brighten(Math.random() * 256));
       li.style.backgroundColor = `rgb(${R},${G},${B})`;
       const link = li.querySelector('a');
-      li.onclick = () => { 
-        window.location.href = link.href; 
-      };
-      li.onmouseenter = () => {
-        link.style.textDecoration = 'underline';
-      };
-      li.onmouseleave = () => {
-        link.style.textDecoration = '';
-      };
+      link.style.textDecoration = 'none';
+      li.onclick = () => { window.location.href = link.href };
+      li.onmouseenter = () => { link.style.textDecoration = 'underline' };
+      li.onmouseleave = () => { link.style.textDecoration = 'none' };
     }
     
     function brighten(x) {
