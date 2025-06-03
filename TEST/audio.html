@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delayed Microphone Input</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #message {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status {
+            font-size: 1.1em;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Delayed Microphone Input</h1>
+
+    <button id="startStopButton">Start Microphone (Delayed)</button>
+    <p class="status">Status: <span id="statusMessage">Inactive</span></p>
+    <p id="message"></p>
+
+    <script>
+        let audioContext = null;
+        let mediaStreamSource = null;
+        let delayNode = null;
+        let stream = null; // To hold the microphone stream
+
+        const startStopButton = document.getElementById('startStopButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const messageParagraph = document.getElementById('message');
+
+        const DELAY_TIME_SECONDS = 0.5; // Half a second delay
+
+        /**
+         * Starts the microphone input with a delay.
+         */
+        async function startMicrophone() {
+            messageParagraph.textContent = ''; // Clear previous messages
+            try {
+                // 1. Get Microphone Access
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // 2. Create an Audio Context (if not already created)
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // If context is suspended (e.g., after initial user gesture), resume it
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                // 3. Create an Audio Source Node from the microphone stream
+                mediaStreamSource = audioContext.createMediaStreamSource(stream);
+
+                // 4. Create a Delay Node
+                delayNode = audioContext.createDelay(10); // Max delay time in seconds (can be larger than DELAY_TIME_SECONDS)
+                delayNode.delayTime.value = DELAY_TIME_SECONDS; // Set the actual delay time
+
+                // 5. Connect Nodes: Source -> Delay -> Destination (speakers)
+                mediaStreamSource.connect(delayNode);
+                delayNode.connect(audioContext.destination);
+
+                startStopButton.textContent = 'Stop Microphone';
+                statusMessage.textContent = 'Active (Delayed)';
+                startStopButton.onclick = stopMicrophone; // Change button action to stop
+
+                console.log('Microphone access granted and delayed playback started.');
+
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    messageParagraph.textContent = 'Microphone access denied. Please allow microphone permissions in your browser settings.';
+                } else if (err.name === 'NotFoundError') {
+                    messageParagraph.textContent = 'No microphone found on this device.';
+                } else if (err.name === 'NotReadableError') {
+                    messageParagraph.textContent = 'Microphone is in use by another application.';
+                } else {
+                    messageParagraph.textContent = `Error: ${err.message}`;
+                }
+                statusMessage.textContent = 'Error';
+            }
+        }
+
+        /**
+         * Stops the microphone and disconnects audio nodes.
+         */
+        function stopMicrophone() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop()); // Stop all tracks in the stream
+                stream = null;
+            }
+            if (mediaStreamSource) {
+                mediaStreamSource.disconnect();
+                mediaStreamSource = null;
+            }
+            if (delayNode) {
+                delayNode.disconnect();
+                delayNode = null;
+            }
+            // Suspend the audio context to release resources if no longer needed
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.suspend(); // Don't close, just suspend, so it can be resumed
+            }
+
+            startStopButton.textContent = 'Start Microphone (Delayed)';
+            statusMessage.textContent = 'Inactive';
+            startStopButton.onclick = startMicrophone; // Change button action back to start
+
+            console.log('Microphone stopped.');
+        }
+
+        // Initial setup for the button click handler
+        startStopButton.onclick = startMicrophone;
+
+        // Optional: Stop microphone when the page is closed or navigated away
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stopMicrophone();
+            }
+        });
+
+    </script>
+</body>
+</html>

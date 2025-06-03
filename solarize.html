@@ -42,6 +42,23 @@
 		</div>	
 	</main>					
 
+	<script>
+			// HANDLE SCREEN ORIENTATION CHANGES
+			window.matchMedia("(orientation: portrait)")
+				.addEventListener('change', pageUpdate);
+
+			let isPortrait
+			pageUpdate()
+			
+			function pageUpdate() {
+				const newOrientation = window.matchMedia("(orientation: portrait)").matches
+				if (isPortrait === undefined)
+					isPortrait = newOrientation;
+				else if (isPortrait !== newOrientation)
+					location.reload()
+			}
+	</script>
+
 	<!-- SHADERS -->
 
 	<script id='vshader' type='text/plain'>

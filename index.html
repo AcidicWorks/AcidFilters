@@ -30,10 +30,27 @@
     <a href='camera-specs.html'>Camera specs</a>
   </main>
 
-  <footer class='xdescription'> 
+  <footer> 
     &copy; 2020 Jonas Geduldig
     <span><a href='https://github.com/AcidicWorks'>AcidicWorks</a></span>
   </footer>
+
+	<script>
+			// HANDLE SCREEN ORIENTATION CHANGES
+			window.matchMedia("(orientation: portrait)")
+				.addEventListener('change', pageUpdate);
+
+			let isPortrait
+			pageUpdate()
+			
+			function pageUpdate() {
+				const newOrientation = window.matchMedia("(orientation: portrait)").matches
+				if (isPortrait === undefined)
+					isPortrait = newOrientation;
+				else if (isPortrait !== newOrientation)
+					location.reload()
+			}
+	</script>
 
   <script>
     const list = document.querySelector('.list');

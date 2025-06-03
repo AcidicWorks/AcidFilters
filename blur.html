@@ -102,6 +102,23 @@
 	<script src='js/common.js?v=9'></script>
 
 	<script>
+			// HANDLE SCREEN ORIENTATION CHANGES
+			window.matchMedia("(orientation: portrait)")
+				.addEventListener('change', pageUpdate);
+
+			let isPortrait
+			pageUpdate()
+			
+			function pageUpdate() {
+				const newOrientation = window.matchMedia("(orientation: portrait)").matches
+				if (isPortrait === undefined)
+					isPortrait = newOrientation;
+				else if (isPortrait !== newOrientation)
+					location.reload()
+			}
+	</script>
+
+	<script>
 		// -- Shader control knobs --
 		
 		const k1 = gl.getUniformLocation(program, 'K1');
