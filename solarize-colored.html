@@ -79,20 +79,20 @@
 	</script>
 
 	<script>
-			// HANDLE SCREEN ORIENTATION CHANGES
-			window.matchMedia("(orientation: portrait)")
-				.addEventListener('change', pageUpdate);
+		// HANDLE SCREEN ORIENTATION CHANGES
+		window.matchMedia("(orientation: portrait)")
+			.addEventListener('change', pageUpdate);
 
-			let isPortrait
-			pageUpdate()
-			
-			function pageUpdate() {
-				const newOrientation = window.matchMedia("(orientation: portrait)").matches
-				if (isPortrait === undefined)
-					isPortrait = newOrientation;
-				else if (isPortrait !== newOrientation)
-					location.reload()
-			}
+		let isPortrait
+		pageUpdate()
+		
+		function pageUpdate() {
+			const newOrientation = window.matchMedia("(orientation: portrait)").matches
+			if (isPortrait === undefined)
+				isPortrait = newOrientation;
+			else if (isPortrait !== newOrientation)
+				location.reload()
+		}
 	</script>
 
 	<!-- MAIN PROGRAM -->

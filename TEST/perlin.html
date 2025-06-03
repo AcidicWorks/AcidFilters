@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perlin Noise Image Effect in Browser</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #222;
+            color: #eee;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid #555;
+            display: block;
+            margin-top: 20px;
+            max-width: 95vw; /* Ensure canvas fits on small screens */
+            max-height: 80vh;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        input[type="range"] {
+            width: 300px;
+            margin-top: 10px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        #info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Perlin Noise Image Effect</h1>
+    <p>Using a placeholder image from a URL. Adjust intensity and scale.</p>
+
+    <div class="controls">
+        <label for="noiseIntensity">Noise Intensity: <span id="intensityValue">0.2</span></label>
+        <input type="range" id="noiseIntensity" min="0.0" max="1.0" step="0.01" value="0.2">
+
+        <label for="noiseScale">Noise Scale: <span id="scaleValue">5.0</span></label>
+        <input type="range" id="noiseScale" min="0.5" max="20.0" step="0.1" value="5.0">
+    </div>
+
+    <canvas id="glCanvas"></canvas>
+    <div id="info">Loading image...</div>
+
+    <script type="webgl/vertex-shader" id="vertex-shader">
+        // This shader defines the position of vertices and passes texture coordinates
+        attribute vec2 a_position;
+        attribute vec2 a_texCoord;
+        varying vec2 v_texCoord; // Passed to the fragment shader
+
+        void main() {
+            // WebGL expects clip space coordinates (-1 to 1). Our a_position is already designed for this.
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            v_texCoord = a_texCoord; // Pass texture coordinates directly
+        }
+    </script>
+
+    <script type="webgl/fragment-shader" id="fragment-shader">
+        precision mediump float; // Set precision for floats
+
+        varying vec2 v_texCoord; // Received from the vertex shader
+        uniform sampler2D u_image; // Our input image texture
+        uniform float u_noiseIntensity; // How strong the noise effect is
+        uniform float u_noiseScale;     // How "zoomed in" or "fine" the noise is
+
+        // --- Classic 2D Perlin Noise Implementation ---
+        // Based on common GLSL implementations, often derived from Ken Perlin's work.
+
+        // Permutation function (to generate pseudo-random numbers)
+        vec4 permute(vec4 x) {
+            return mod(((x*34.0)+1.0)*x, 289.0);
+        }
+
+        // Fast inverse square root (used for normalizing gradient vectors)
+        vec4 taylorInvSqrt(vec4 r) {
+            return 1.79284291400159 - 0.85373472095314 * r;
+        }
+
+        // Fade function (6t^5 - 15t^4 + 10t^3 for smooth interpolation)
+        vec2 fade(vec2 t) {
+            return t*t*t*(t*(t*6.0-15.0)+10.0);
+        }
+
+        // Main 2D classic Perlin noise function
+        float cnoise(vec2 P) {
+            vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0); // Integer part of P and neighbor cells
+            vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0); // Fractional part of P and neighbor cells
+            Pi = mod(Pi, 289.0); // Keep permutation indices in range
+
+            vec4 ix = Pi.xzxz; // x-coords for (0,0), (1,0), (0,1), (1,1) cells
+            vec4 iy = Pi.yyww; // y-coords for (0,0), (1,0), (0,1), (1,1) cells
+            vec4 fx = Pf.xzxz; // Fractional x-coords
+            vec4 fy = Pf.yyww; // Fractional y-coords
+
+            vec4 i = permute(permute(ix) + iy); // Get permutation values for each corner
+
+            // Convert random values to gradient vectors
+            vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0 ;
+            vec4 gy = abs(gx) - 0.5 ;
+            vec4 tx = floor(gx + 0.5);
+            gx = gx - tx;
+
+            vec2 g00 = vec2(gx.x,gy.x); // Gradient for (0,0) corner
+            vec2 g10 = vec2(gx.y,gy.y); // Gradient for (1,0) corner
+            vec2 g01 = vec2(gx.z,gy.z); // Gradient for (0,1) corner
+            vec2 g11 = vec2(gx.w,gy.w); // Gradient for (1,1) corner
+
+            // Normalize gradients (important for visual quality)
+            vec4 norm00 = taylorInvSqrt(dot(g00, g00));
+            vec4 norm10 = taylorInvSqrt(dot(g10, g10));
+            vec4 norm01 = taylorInvSqrt(dot(g01, g01));
+            vec4 norm11 = taylorInvSqrt(dot(g11, g11));
+            g00 *= norm00.x;
+            g10 *= norm10.y;
+            g01 *= norm01.z;
+            g11 *= norm11.w;
+
+            // Calculate dot products of gradient and fractional parts
+            float n00 = dot(g00, vec2(fx.x, fy.x));
+            float n10 = dot(g10, vec2(fx.y, fy.y));
+            float n01 = dot(g01, vec2(fx.z, fy.z));
+            float n11 = dot(g11, vec2(fx.w, fy.w));
+
+            // Interpolate the noise values using the fade function
+            vec2 fade_ft = fade(Pf.xy);
+            float n_x = mix(n00, n10, fade_ft.x); // Interpolate along x
+            float n_y = mix(n01, n11, fade_ft.x); // Interpolate along x again
+            float n_final = mix(n_x, n_y, fade_ft.y); // Interpolate along y
+
+            // Perlin noise typically returns -1 to 1. Normalize to 0-1 for easier use.
+            return n_final * 0.5 + 0.5;
+        }
+
+        void main() {
+            // Sample the original image color at the current texture coordinate
+            vec4 originalColor = texture2D(u_image, v_texCoord);
+
+            // Calculate Perlin noise for the current pixel, scaled by u_noiseScale
+            // Scaling v_texCoord effectively "zooms" into the noise pattern.
+            float noiseValue = cnoise(v_texCoord * u_noiseScale);
+
+            // Apply the noise to the image color.
+            // Option 1: Add noise to RGB channels, clamping to 0-1.
+            vec3 finalColor = clamp(originalColor.rgb + noiseValue * u_noiseIntensity, 0.0, 1.0);
+
+            // Option 2: Blend between original color and a grayscale noise color
+            // vec3 noiseColor = vec3(noiseValue); // Creates a grayscale noise pattern
+            // vec3 finalColor = mix(originalColor.rgb, noiseColor, u_noiseIntensity);
+
+            // Option 3: Use noise to modulate brightness/contrast
+            // (noiseValue - 0.5) shifts range to -0.5 to 0.5, then scaled
+            // vec3 finalColor = originalColor.rgb * (1.0 + (noiseValue - 0.5) * u_noiseIntensity * 2.0);
+            // finalColor = clamp(finalColor, 0.0, 1.0);
+
+            gl_FragColor = vec4(finalColor, originalColor.a); // Keep original alpha
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl');
+        const infoDiv = document.getElementById('info');
+        const noiseIntensitySlider = document.getElementById('noiseIntensity');
+        const intensityValueSpan = document.getElementById('intensityValue');
+        const noiseScaleSlider = document.getElementById('noiseScale');
+        const scaleValueSpan = document.getElementById('scaleValue');
+
+        let program;
+        let imageTexture;
+        let aPositionLocation, aTexCoordLocation;
+        let uImageLocation, uNoiseIntensityLocation, uNoiseScaleLocation;
+        let positionBuffer, texCoordBuffer;
+
+        // Use a publicly accessible image URL for demonstration.
+        // Make sure the image supports CORS if it's from a different domain.
+        const imageUrl = 'https://picsum.photos/600/400?random=1'; // Example placeholder image
+
+        if (!gl) {
+            infoDiv.textContent = 'Unable to initialize WebGL. Your browser or hardware may not support it.';
+            console.error('WebGL not supported');
+            return;
+        }
+
+        // --- Shader Compilation Functions ---
+        function createShader(gl, type, sourceId) {
+            const source = document.getElementById(sourceId).textContent;
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        function createProgram(gl, vertexShader, fragmentShader) {
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(program));
+                gl.deleteProgram(program);
+                return null;
+            }
+            return program;
+        }
+
+        // --- WebGL Initialization ---
+        function initWebGL() {
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, 'vertex-shader');
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, 'fragment-shader');
+            program = createProgram(gl, vertexShader, fragmentShader);
+
+            if (!program) {
+                infoDiv.textContent = 'Failed to create WebGL program.';
+                return;
+            }
+
+            gl.useProgram(program);
+
+            // Get attribute and uniform locations
+            aPositionLocation = gl.getAttribLocation(program, 'a_position');
+            aTexCoordLocation = gl.getAttribLocation(program, 'a_texCoord');
+            uImageLocation = gl.getUniformLocation(program, 'u_image');
+            uNoiseIntensityLocation = gl.getUniformLocation(program, 'u_noiseIntensity');
+            uNoiseScaleLocation = gl.getUniformLocation(program, 'u_noiseScale');
+
+            // --- Set up Vertex Data (a quad covering the entire clip space) ---
+            const positions = new Float32Array([
+                -1.0, -1.0,  // Bottom-left
+                 1.0, -1.0,  // Bottom-right
+                -1.0,  1.0,  // Top-left
+                -1.0,  1.0,  // Top-left (duplicate for second triangle)
+                 1.0, -1.0,  // Bottom-right (duplicate for second triangle)
+                 1.0,  1.0   // Top-right
+            ]);
+
+            positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+            // Corresponding texture coordinates for the quad
+            const texCoords = new Float32Array([
+                0.0, 0.0,  // Bottom-left of texture
+                1.0, 0.0,  // Bottom-right of texture
+                0.0, 1.0,  // Top-left of texture
+                0.0, 1.0,  // Top-left of texture
+                1.0, 0.0,  // Bottom-right of texture
+                1.0, 1.0   // Top-right of texture
+            ]);
+
+            texCoordBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+        }
+
+        // --- Image Loading and Texture Creation ---
+        function loadImageAndCreateTexture(url) {
+            const image = new Image();
+            // Important for cross-origin images to prevent "tainted canvas" security errors
+            image.crossOrigin = 'anonymous';
+            image.src = url;
+
+            image.onload = () => {
+                canvas.width = image.width;
+                canvas.height = image.height;
+                // Set the WebGL viewport to match the canvas size
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+                imageTexture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, imageTexture);
+
+                // Set texture parameters for non-power-of-2 images and general good practice
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+                // Upload the image data to the texture
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+                infoDiv.textContent = `Image loaded: ${image.width}x${image.height}`;
+                drawScene(); // Draw the scene once the image is loaded
+            };
+
+            image.onerror = () => {
+                infoDiv.textContent = 'Error loading image. Make sure it supports CORS or is from the same origin.';
+                console.error('Error loading image:', url);
+            };
+        }
+
+        // --- Drawing Function ---
+        function drawScene() {
+            if (!gl || !program || !imageTexture) {
+                // Don't try to draw if WebGL is not ready or image hasn't loaded
+                console.warn("Skipping drawScene: WebGL or image not ready.");
+                return;
+            }
+
+            gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear the canvas to black
+            gl.clear(gl.COLOR_BUFFER_BIT); // Clear the color buffer
+
+            // Bind the position buffer and tell WebGL how to read it
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.vertexAttribPointer(aPositionLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aPositionLocation);
+
+            // Bind the texture coordinate buffer and tell WebGL how to read it
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.vertexAttribPointer(aTexCoordLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aTexCoordLocation);
+
+            // Tell the shader to use texture unit 0 for our image
+            gl.activeTexture(gl.TEXTURE0); // Activate texture unit 0
+            gl.bindTexture(gl.TEXTURE_2D, imageTexture); // Bind our image texture to it
+            gl.uniform1i(uImageLocation, 0); // Pass the texture unit index (0) to the shader
+
+            // Set uniform values from sliders
+            gl.uniform1f(uNoiseIntensityLocation, parseFloat(noiseIntensitySlider.value));
+            gl.uniform1f(uNoiseScaleLocation, parseFloat(noiseScaleSlider.value));
+
+            // Draw the two triangles that form our full-screen quad
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+
+        // --- Event Listeners for Sliders ---
+        noiseIntensitySlider.addEventListener('input', () => {
+            intensityValueSpan.textContent = noiseIntensitySlider.value;
+            drawScene(); // Redraw whenever intensity changes
+        });
+
+        noiseScaleSlider.addEventListener('input', () => {
+            scaleValueSpan.textContent = noiseScaleSlider.value;
+            drawScene(); // Redraw whenever scale changes
+        });
+
+        // --- Start everything ---
+        initWebGL(); // Initialize WebGL components
+        loadImageAndCreateTexture(imageUrl); // Load the image and trigger the first draw
+    </script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="style/style.css?v=1" rel="stylesheet">
+
+<body>
+	<main>
+		<!-- VIDEO CANVAS -->
+		<div>
+			<video class='hide' id='video' autoplay playsinline></video>
+			<canvas id='canvas' onclick=toggleMenu()></canvas>
+		</div>
+		
+		<!-- ONBOARDING MENU -->
+		<div class='popup' id='on-boarding'>
+			Click image to toggle options on/off
+		</div>
+		
+		<!-- OPTIONS MENU -->
+		<div class='popup fade-in hide' id='opt-menu'>
+			<div id='menu-top'>
+				<button class='btn-controls' id='go-back-btn' onclick=goToParentPage()>☰</button>
+				<div id='menu-camera'>
+					<!-- VIDEO SOURCE CHOOSER -->
+					<select class='cam-controls' id='videoSource'></select>
+					<button class='cam-controls hide' id='facingMode' onclick=toggleFacingMode() />
+					<!-- TAKE SNAPSHOT -->
+					<button class='cam-controls' id='snapshot' onclick=saveSnapshot() />
+					<div class='hide'>
+						<a id='snapshot-link' href='#'></a>
+						<img id='snapshot-img'/>
+					</div>
+				</div>
+				<button class='btn-controls' id='close-menu-btn' onclick=hideMenu()>⨯</button>
+			</div>
+			<!-- PRESET BUTTONS -->
+			<div id='menu-presets'>
+				<div id='presets'></div>
+			</div>
+			<!-- SLIDER CONTROLS -->
+			<form id='sliders'></form>
+		</div>						
+	</main>
+
+	<script>
+		// HANDLE SCREEN ORIENTATION CHANGES
+		window.matchMedia("(orientation: portrait)")
+			.addEventListener('change', pageUpdate);
+
+		let isPortrait
+		pageUpdate()
+		
+		function pageUpdate() {
+			const newOrientation = window.matchMedia("(orientation: portrait)").matches
+			if (isPortrait === undefined)
+				isPortrait = newOrientation;
+			else if (isPortrait !== newOrientation)
+				location.reload()
+		}
+	</script>
+
+	<!-- SHADERS -->
+
+	<script id='vshader' type='text/plain'>
+		attribute vec2 position; 
+		void main() {
+			gl_Position = vec4(position, 0, 1); 
+		}
+	</script>
+
+	<script id='fshader' type='text/plain'>
+		precision mediump float; 
+		varying vec2 v_texCoord;  
+		uniform sampler2D sampler0;  
+		uniform float width, height;
+		uniform float K1; //u_noiseIntensity; 
+		uniform float K2; //u_noiseScale;   
+
+		vec4 permute(vec4 x) {
+			return mod(((x * 34.0) + 1.0) * x, 289.0);
+		}
+
+		// Fast inverse square root 
+		vec4 taylorInvSqrt(float r) {
+			return vec4(1.79284291400159 - 0.85373472095314 * r);
+		}
+
+		// Fade function (6t^5 - 15t^4 + 10t^3 for smooth Hermite interpolation)
+		vec2 fade(vec2 t) {
+			return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+		}
+
+		// 'P' is the 2D input coordinate in "noise space" for which to generate the noise value.
+		float cnoise(vec2 P) {
+			vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
+			vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
+			Pi = mod(Pi, 289.0);
+			vec4 ix = Pi.xzxz; // x-coordinates for corners (0,0), (1,0), (0,1), (1,1)
+			vec4 iy = Pi.yyww; // y-coordinates for corners (0,0), (1,0), (0,1), (1,1)
+			vec4 fx = Pf.xzxz; // Fractional x-coordinates relative to corners
+			vec4 fy = Pf.yyww; // Fractional y-coordinates relative to corners
+
+			// Permute indices to get pseudo-random values for each corner
+			vec4 i = permute(permute(ix) + iy);
+
+			// Convert random values to gradient vectors.
+			vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0 ;
+			vec4 gy = abs(gx) - 0.5 ;
+			vec4 tx = floor(gx + 0.5);
+			gx = gx - tx;
+
+			// Separate gradient vectors for each of the 4 corners surrounding the point P
+			vec2 g00 = vec2(gx.x,gy.x); // Gradient for the (0,0) corner
+			vec2 g10 = vec2(gx.y,gy.y); // Gradient for the (1,0) corner
+			vec2 g01 = vec2(gx.z,gy.z); // Gradient for the (0,1) corner
+			vec2 g11 = vec2(gx.w,gy.w); // Gradient for the (1,1) corner
+
+			// Normalize gradients using fast inverse square root.
+			vec4 norm00 = taylorInvSqrt(dot(g00, g00));
+			vec4 norm10 = taylorInvSqrt(dot(g10, g10));
+			vec4 norm01 = taylorInvSqrt(dot(g01, g01));
+			vec4 norm11 = taylorInvSqrt(dot(g11, g11));
+			g00 *= norm00.x; 
+			g10 *= norm10.y;
+			g01 *= norm01.z;
+			g11 *= norm11.w;
+
+			// Calculate dot products of gradient vectors with the fractional position vectors.
+			float n00 = dot(g00, vec2(fx.x, fy.x));
+			float n10 = dot(g10, vec2(fx.y, fy.y));
+			float n01 = dot(g01, vec2(fx.z, fy.z));
+			float n11 = dot(g11, vec2(fx.w, fy.w));
+
+			// Interpolate the noise values using the fade function
+			vec2 fade_ft = fade(Pf.xy);
+			float n_x = mix(n00, n10, fade_ft.x); 
+			float n_y = mix(n01, n11, fade_ft.x); 
+			float n_final = mix(n_x, n_y, fade_ft.y); 
+
+			// Perlin noise typically returns a value between -1.0 and 1.0.
+			return n_final * 0.5 + 0.5;
+		}
+
+		void main() {
+			// 1. Sample the original image color at the current pixel's texture coordinate
+			vec2 st = vec2(gl_FragCoord.s/width, 1. - gl_FragCoord.t/height);
+			vec2 v_texCoord = st;
+			vec4 originalColor = texture2D(sampler0, v_texCoord);
+
+			// 2. Calculate Perlin noise value for the current pixel
+			//    Multiply v_texCoord by u_noiseScale to control the noise frequency/zoom.
+			//    Adding u_time creates a scrolling/animated noise effect by shifting the noise coordinates.
+			float noiseValue = cnoise(v_texCoord * K2);
+
+			// 3. Apply the noise to the image color (choose one option)
+
+			// Option A: Additive/Subtractive noise (brightens or darkens image regions)
+			//   - (noiseValue - 0.5) converts noise from [0,1] to [-0.5,0.5], centering it around zero.
+			//   - Multiplying by u_noiseIntensity scales the effect.
+			//   - clamp ensures final color components stay within the valid [0,1] range.
+			vec3 finalColor = clamp(originalColor.rgb + (noiseValue - 0.5) * K1, 0.0, 1.0);
+
+			// Option B: Multiplicative noise (modulates brightness/contrast)
+			//   - This can create a more "grainy" or "textured" look.
+			//   - '1.0 + (noiseValue - 0.5) * K1 * 2.0' creates a multiplier around 1.0.
+			// // vec3 finalColor = originalColor.rgb * (1.0 + (noiseValue - 0.5) * K1 * 2.0);
+			// // finalColor = clamp(finalColor, 0.0, 1.0);
+
+			// Option C: Blending with a grayscale noise color
+			//   - Creates a blend between the original image and a purely grayscale noise pattern.
+			// // vec3 noiseColor = vec3(noiseValue); // Creates a grayscale color based on noise
+			// // vec3 finalColor = mix(originalColor.rgb, noiseColor, K1); // Blends based on intensity
+
+			// Set the final color of the pixel, preserving the original alpha channel
+			gl_FragColor = vec4(finalColor, originalColor.a);
+		}		
+	</script>
+
+	<!-- MAIN PROGRAM -->	
+
+	<script src='js/webglShader.js'></script>
+	<script src='js/webglTexture.js'></script>
+	<script src='js/webcam.js?v=3'></script>
+	<script src='js/common.js?v=5'></script>
+
+	<script>
+		// -- Shader control knobs --
+		
+		const k1 = gl.getUniformLocation(program, 'K1');
+		const k2 = gl.getUniformLocation(program, 'K2');
+
+		// -- Sliders  --
+
+		const slider1 = 
+			createSlider('slider1', 'Zoom', 0, 10, 0.1, 
+				() => gl.uniform1f(k1, document.querySelector('#slider1 > input').value));
+
+		const slider2 = 
+			createSlider('slider2', 'Zoom', 0, 40, 0.1, 
+				() => gl.uniform1f(k2, document.querySelector('#slider2 > input').value));
+
+		// -- Presets --
+
+		createPreset('1', () => { slider1(5); slider2(20); });		
+
+		slider1(5);
+		slider2(20);
+ 	</script>
+</body>
