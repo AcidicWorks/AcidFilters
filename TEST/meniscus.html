@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meniscus Effect - Public Domain Elephant</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Hide scrollbars if canvas overflows */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Align to top to make space for controls */
+            min-height: 100vh;
+            background-color: #222;
+            color: #eee;
+            font-family: Arial, sans-serif;
+            padding-top: 20px; /* Space from top edge */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        canvas {
+            border: 1px solid #555;
+            display: block; /* Remove extra space below canvas */
+            margin-top: 20px;
+            max-width: 95vw; /* Ensure canvas fits viewport width */
+            max-height: 70vh; /* Limit canvas height to leave room for controls */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+        }
+        #controls {
+            margin-bottom: 20px;
+            text-align: center;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        input[type="range"] {
+            width: 300px;
+            margin-top: 10px;
+            -webkit-appearance: none; /* Remove default styling */
+            appearance: none;
+            height: 8px;
+            background: #555;
+            outline: none;
+            border-radius: 5px;
+            opacity: 0.9;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-size: 1.1em;
+            color: #ccc;
+        }
+        #imageInfo {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #bbb;
+        }
+        h1 {
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .info-note {
+            background-color: #e6f7ff; /* Light blue */
+            color: #004085; /* Dark blue text */
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid #b3d7ff;
+        }
+        .debug-note {
+            background-color: #fff3cd; /* Yellow */
+            color: #856404; /* Dark yellow text */
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid #ffeeba;
+        }
+    </style>
+</head>
+<body>
+    <h1>Meniscus Effect on an Elephant Image</h1>
+
+    <div class="debug-note">
+        **DEBUGGING STEPS (IMPORTANT!):**
+        <br>
+        1.  **Right-click anywhere** on this page and select "Inspect" or "Inspect Element".
+        <br>
+        2.  Go to the "**Console**" tab for error messages (red text).
+        <br>
+        3.  Go to the "**Network**" tab and refresh the page (`F5` or `Cmd/Ctrl+R`). Look for the image request (ending in `.jpeg`, `.png`, etc.) and its "Status" (should be `200 OK`). If it's `(failed)` or `CORS error`, that's the problem.
+        <br>
+        4.  **Ensure you are running this HTML file via a local web server (e.g., `http://localhost:8000`), NOT directly from `file:///`**
+    </div>
+
+    <div class="info-note">
+        This page attempts to load a random elephant image from Unsplash (a CORS-enabled source).
+        <br>
+        **Source:** <a href="https://unsplash.com/" target="_blank" style="color: #007bff;">Unsplash.com</a> (via source.unsplash.com - generally free to use, check Unsplash license for specifics)
+    </div>
+
+    <div id="controls">
+        <label for="distortionSlider">Distortion Amount: <span id="distortionValue">0.2</span></label>
+        <input type="range" id="distortionSlider" min="-1.0" max="1.0" step="0.01" value="0.2">
+    </div>
+
+    <canvas id="glCanvas"></canvas>
+    <div id="imageInfo">Attempting to load elephant image...</div>
+
+    <script type="webgl/vertex-shader" id="vertex-shader-src">
+        attribute vec2 a_position;
+        attribute vec2 a_texCoord;
+        varying vec2 v_texCoord;
+
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            v_texCoord = a_texCoord;
+        }
+    </script>
+
+    <script type="webgl/fragment-shader" id="fragment-shader-src">
+        precision mediump float;
+
+        varying vec2 v_texCoord;
+        uniform sampler2D u_image;
+        uniform float u_distortionAmount;
+
+        void main() {
+            vec2 center = vec2(0.5, 0.5);
+            vec2 dist = v_texCoord - center;
+            float r = length(dist);
+
+            float distortionFactor = 1.0 + u_distortionAmount * pow(r, 2.0);
+
+            vec2 distortedTexCoord = center + dist * distortionFactor;
+
+            vec4 finalColor;
+            if (distortedTexCoord.x < 0.0 || distortedTexCoord.x > 1.0 ||
+                distortedTexCoord.y < 0.0 || distortedTexCoord.y > 1.0) {
+                finalColor = vec4(0.0, 0.0, 0.0, 1.0);
+            } else {
+                finalColor = texture2D(u_image, distortedTexCoord);
+            }
+
+            gl_FragColor = finalColor;
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl');
+        const imageInfo = document.getElementById('imageInfo');
+        const distortionSlider = document.getElementById('distortionSlider');
+        const distortionValueSpan = document.getElementById('distortionValue');
+
+        // PUBLIC DOMAIN / FREE TO USE IMAGE URL (from Unsplash via source.unsplash.com for CORS)
+        // This will fetch a *random* image tagged with 'elephant'
+        const ELEPHANT_IMAGE_URL = 'https://source.unsplash.com/random/800x600/?elephant';
+
+        // --- Debugging Fallback Image (tiny 1x1 green dot Base64) ---
+        // If the external image fails, this will at least show a green canvas,
+        // confirming WebGL and shaders are working.
+        const FALLBACK_IMAGE_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYGD4zwH8BwEBgwJtKgAAAABJRU5ErkJggg=="; // 1x1 green pixel
+
+        let program;
+        let imageTexture = null;
+        let aPositionLocation, aTexCoordLocation;
+        let uImageLocation, uDistortionAmountLocation;
+        let positionBuffer, texCoordBuffer;
+
+        if (!gl) {
+            imageInfo.textContent = 'Unable to initialize WebGL. Your browser or hardware may not support it.';
+            console.error('WebGL not supported');
+            distortionSlider.disabled = true;
+            return;
+        }
+
+        // --- Shader Compilation Helper Functions ---
+        function createShader(gl, type, sourceId) {
+            const source = document.getElementById(sourceId).textContent;
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        function createProgram(gl, vertexShader, fragmentShader) {
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(program));
+                gl.deleteProgram(program);
+                return null;
+            }
+            return program;
+        }
+
+        // --- WebGL Initialization ---
+        function initWebGL() {
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, 'vertex-shader-src');
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, 'fragment-shader-src');
+            program = createProgram(gl, vertexShader, fragmentShader);
+
+            if (!program) {
+                imageInfo.textContent = 'Failed to create WebGL program.';
+                return;
+            }
+
+            gl.useProgram(program);
+
+            aPositionLocation = gl.getAttribLocation(program, 'a_position');
+            aTexCoordLocation = gl.getAttribLocation(program, 'a_texCoord');
+            uImageLocation = gl.getUniformLocation(program, 'u_image');
+            uDistortionAmountLocation = gl.getUniformLocation(program, 'u_distortionAmount');
+
+            const positions = new Float32Array([
+                -1.0, -1.0,
+                 1.0, -1.0,
+                -1.0,  1.0,
+                -1.0,  1.0,
+                 1.0, -1.0,
+                 1.0,  1.0
+            ]);
+            positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+            const texCoords = new Float32Array([
+                0.0, 0.0,
+                1.0, 0.0,
+                0.0, 1.0,
+                0.0, 1.0,
+                1.0, 0.0,
+                1.0, 1.0
+            ]);
+            texCoordBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.vertexAttribPointer(aPositionLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aPositionLocation);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.vertexAttribPointer(aTexCoordLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aTexCoordLocation);
+        }
+
+        // --- Create WebGL Texture from HTML Image Object ---
+        function createTextureFromImage(image) {
+            if (imageTexture) {
+                gl.deleteTexture(imageTexture);
+            }
+            
+            imageTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, imageTexture);
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+            imageInfo.textContent = `Image loaded: ${image.width}x${image.height}`;
+            drawScene();
+        }
+
+        // --- Drawing Function ---
+        function drawScene() {
+            if (!gl || !program || !imageTexture) {
+                console.warn("Skipping drawScene: WebGL, program, or image not ready.");
+                return;
+            }
+
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, imageTexture);
+            gl.uniform1i(uImageLocation, 0);
+
+            gl.uniform1f(uDistortionAmountLocation, parseFloat(distortionSlider.value));
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+
+        // --- Event Listener ---
+        distortionSlider.addEventListener('input', () => {
+            distortionValueSpan.textContent = distortionSlider.value;
+            drawScene();
+        });
+
+        // --- Initial setup calls and image loading ---
+        initWebGL();
+        distortionValueSpan.textContent = distortionSlider.value;
+
+        gl.clearColor(0.1, 0.1, 0.1, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // Load the external elephant image first
+        const elephantImage = new Image();
+        elephantImage.crossOrigin = 'anonymous'; // Essential for CORS
+
+        elephantImage.onload = () => {
+            canvas.width = elephantImage.width;
+            canvas.height = elephantImage.height;
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            createTextureFromImage(elephantImage);
+        };
+        elephantImage.onerror = (e) => {
+            // If the primary image fails (e.g., CORS, network error)
+            imageInfo.textContent = 'Failed to load elephant image from URL. Trying fallback.';
+            console.error('Error loading primary image:', ELEPHANT_IMAGE_URL, e);
+            console.warn('Common issue: The image server (Unsplash in this case) MUST send "Access-Control-Allow-Origin" headers that permit access from your origin (e.g., http://localhost:8000). If it doesn\'t, the image cannot be used on a canvas due to security rules.');
+            
+            // Attempt to load the fallback image
+            const fallbackImage = new Image();
+            fallbackImage.onload = () => {
+                canvas.width = 1; // Set to fallback image size
+                canvas.height = 1;
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+                createTextureFromImage(fallbackImage);
+                imageInfo.textContent += ' Fallback (green pixel) loaded.';
+            };
+            fallbackImage.onerror = () => {
+                imageInfo.textContent = 'Fallback image also failed! WebGL setup might be the issue.';
+                console.error('Fallback image failed to load. This indicates a deeper problem with Image loading or WebGL texture creation.');
+            };
+            fallbackImage.src = FALLBACK_IMAGE_DATA_URL;
+        };
+
+        elephantImage.src = ELEPHANT_IMAGE_URL; // Start loading the main image
+    </script>
+</body>
+</html>
