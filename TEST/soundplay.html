@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microphone Passthrough</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #282c34;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #3b3e47;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #61dafb;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            color: #fff;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #startButton {
+            background-color: #2ecc71;
+        }
+        #startButton:hover {
+            background-color: #27ae60;
+        }
+        #stopButton {
+            background-color: #e74c3c;
+        }
+        #stopButton:hover {
+            background-color: #c0392b;
+        }
+        .status-message {
+            margin-top: 15px;
+            font-size: 1em;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Microphone Passthrough</h1>
+        <p class="status-message" id="statusMessage">Click "Start Monitoring" to listen to your microphone.</p>
+        <div class="controls">
+            <button id="startButton">Start Monitoring</button>
+            <button id="stopButton" disabled>Stop Monitoring</button>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let audioContext;
+        let mediaStreamSource;
+        let mediaStream; // To hold the actual MediaStream
+
+        // Function to start microphone monitoring
+        async function startMonitoring() {
+            startButton.disabled = true;
+            statusMessage.textContent = 'Requesting microphone access...';
+
+            try {
+                // Request access to the microphone
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Create an AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Create a MediaStreamSourceNode from the microphone stream
+                mediaStreamSource = audioContext.createMediaStreamSource(mediaStream);
+
+                // Connect the microphone source to the audio output (speakers)
+                mediaStreamSource.connect(audioContext.destination);
+
+                statusMessage.textContent = 'Microphone monitoring active. Speak into your mic!';
+                stopButton.disabled = false;
+
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                statusMessage.textContent = `Error: ${err.name}. Please ensure you have a microphone and allow access.`;
+                startButton.disabled = false; // Re-enable start button on error
+                stopButton.disabled = true;
+                // Clean up any partial streams
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+                if (audioContext) {
+                    audioContext.close();
+                    audioContext = null;
+                }
+            }
+        }
+
+        // Function to stop microphone monitoring
+        function stopMonitoring() {
+            if (mediaStreamSource) {
+                mediaStreamSource.disconnect(); // Disconnect the audio graph
+                mediaStreamSource = null;
+            }
+            if (audioContext) {
+                audioContext.close(); // Close the AudioContext to release resources
+                audioContext = null;
+            }
+            if (mediaStream) {
+                // Stop all tracks in the media stream (releases the microphone)
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            statusMessage.textContent = 'Microphone monitoring stopped.';
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', startMonitoring);
+        stopButton.addEventListener('click', stopMonitoring);
+
+        // Initial state
+        stopButton.disabled = true; // Ensure stop button is initially disabled
+    </script>
+</body>
+</html>

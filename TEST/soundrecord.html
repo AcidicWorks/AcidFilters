@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Sound Recorder</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #282c34;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #3b3e47;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #61dafb;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            color: #fff;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #recordButton {
+            background-color: #e74c3c;
+        }
+        #recordButton:hover {
+            background-color: #c0392b;
+        }
+        #stopButton {
+            background-color: #f39c12;
+        }
+        #stopButton:hover {
+            background-color: #e67e22;
+        }
+        #playButton {
+            background-color: #2ecc71;
+        }
+        #playButton:hover {
+            background-color: #27ae60;
+        }
+        #downloadButton {
+            background-color: #3498db;
+        }
+        #downloadButton:hover {
+            background-color: #2980b9;
+        }
+        .status-message {
+            margin-top: 15px;
+            font-size: 1em;
+            color: #ccc;
+        }
+        .audio-player {
+            margin-top: 30px;
+        }
+        audio {
+            width: 100%;
+            background-color: #4a4d55;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .visualizer {
+            background-color: #4a4d55;
+            border-radius: 8px;
+            margin-top: 20px;
+            height: 100px;
+            width: 100%;
+            overflow: hidden; /* Hide anything drawn outside */
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Microphone Recorder</h1>
+
+        <div class="controls">
+            <button id="recordButton">Record</button>
+            <button id="stopButton" disabled>Stop</button>
+            <button id="playButton" disabled>Play Last Recording</button>
+            <button id="downloadButton" disabled>Download</button>
+        </div>
+
+        <div class="visualizer">
+            <canvas id="audioVisualizer"></canvas>
+        </div>
+
+        <p class="status-message" id="statusMessage">Click "Record" to start.</p>
+
+        <div class="audio-player">
+            <audio controls id="audioPlayback"></audio>
+        </div>
+    </div>
+
+    <script>
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const playButton = document.getElementById('playButton');
+        const downloadButton = document.getElementById('downloadButton');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const statusMessage = document.getElementById('statusMessage');
+        const visualizerCanvas = document.getElementById('audioVisualizer');
+        const visualizerCtx = visualizerCanvas.getContext('2d');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob = null;
+        let stream = null; // To hold the MediaStream from getUserMedia
+        let audioContext; // For visualization
+        let analyser; // For visualization
+        let source; // For visualization
+        let bufferLength; // For visualization
+        let dataArray; // For visualization
+        let animationFrameId; // For visualization
+
+        // Set initial canvas dimensions
+        visualizerCanvas.width = visualizerCanvas.offsetWidth;
+        visualizerCanvas.height = visualizerCanvas.offsetHeight;
+
+        // --- Visualization Function ---
+        function drawVisualizer() {
+            animationFrameId = requestAnimationFrame(drawVisualizer);
+
+            analyser.getByteFrequencyData(dataArray); // Or getByteTimeDomainData for waveform
+
+            visualizerCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+            visualizerCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Clear with transparent
+
+            let barWidth = (visualizerCanvas.width / bufferLength) * 2.5; // Adjust bar width
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                let barHeight = dataArray[i] / 2; // Scale height
+
+                visualizerCtx.fillStyle = `rgb(${barHeight + 100}, 50, 150)`; // Color based on height
+                visualizerCtx.fillRect(x, visualizerCanvas.height - barHeight, barWidth, barHeight);
+
+                x += barWidth + 1; // Spacing between bars
+            }
+        }
+
+        function stopVisualizer() {
+            cancelAnimationFrame(animationFrameId);
+            visualizerCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+            visualizerCtx.fillStyle = '#4a4d55'; // Background color
+            visualizerCtx.fillRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+        }
+
+        // --- Event Listeners ---
+        recordButton.addEventListener('click', async () => {
+            recordButton.disabled = true;
+            stopButton.disabled = false;
+            playButton.disabled = true;
+            downloadButton.disabled = true;
+            statusMessage.textContent = 'Recording...';
+            audioPlayback.src = ''; // Clear previous recording
+
+            audioChunks = []; // Reset chunks for new recording
+            audioBlob = null;
+
+            try {
+                // Request microphone access
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Initialize MediaRecorder
+                mediaRecorder = new MediaRecorder(stream);
+
+                // For visualization
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 256; // Fast Fourier Transform size
+                bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                drawVisualizer(); // Start visualizer
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    stopVisualizer(); // Stop visualizer
+                    
+                    audioBlob = new Blob(audioChunks, { type: 'audio/wav' }); // or 'audio/webm;codecs=opus' etc.
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayback.src = audioUrl;
+
+                    statusMessage.textContent = 'Recording stopped.';
+                    recordButton.disabled = false;
+                    playButton.disabled = false;
+                    downloadButton.disabled = false;
+
+                    // Stop all tracks in the stream to release microphone
+                    stream.getTracks().forEach(track => track.stop());
+                    if (audioContext) {
+                        audioContext.close(); // Close AudioContext
+                        audioContext = null;
+                    }
+                };
+
+                mediaRecorder.start();
+
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                statusMessage.textContent = `Error: ${err.name}. Please allow microphone access.`;
+                recordButton.disabled = false;
+                stopButton.disabled = true;
+                playButton.disabled = true;
+                downloadButton.disabled = true;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop()); // Ensure tracks are stopped even on error
+                }
+                stopVisualizer();
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                stopButton.disabled = true;
+            }
+        });
+
+        playButton.addEventListener('click', () => {
+            if (audioBlob) {
+                audioPlayback.play();
+                statusMessage.textContent = 'Playing recording...';
+            } else {
+                statusMessage.textContent = 'No recording available to play.';
+            }
+        });
+
+        downloadButton.addEventListener('click', () => {
+            if (audioBlob) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(audioBlob);
+                a.download = `recording-${new Date().toISOString().replace(/:/g, '-')}.wav`; // Generate unique filename
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                statusMessage.textContent = 'Recording downloaded!';
+            } else {
+                statusMessage.textContent = 'No recording available to download.';
+            }
+        });
+
+        // Ensure canvas resizes with window
+        window.addEventListener('resize', () => {
+            visualizerCanvas.width = visualizerCanvas.offsetWidth;
+            visualizerCanvas.height = visualizerCanvas.offsetHeight;
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') { // Redraw if actively recording
+                 drawVisualizer();
+            } else { // Clear if not recording
+                stopVisualizer(); // Just clear it and set background
+            }
+        });
+        // Initial clear for visualizer
+        stopVisualizer(); // Sets initial background
+    </script>
+</body>
+</html>
