@@ -12,6 +12,9 @@ function setupCamera(video, constraints, callback) {
 			video.play(); 
 			callback(null, stream); 
 		};
+
+		if (constraints.audio)
+			audioPassThrough(stream);
 	}
 
 	function onMediaFail(err) {
@@ -38,4 +41,10 @@ function discoverCameras(callback) {
 	function onMediaFail(err) {
 		callback(err, null);
   	}
+}
+
+function audioPassThrough(stream) {
+    const audioContext = new AudioContext();
+    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+    mediaStreamSource.connect(audioContext.destination);
 }

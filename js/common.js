@@ -181,7 +181,8 @@ function startVideo(id) {
         video: { 
             width: video.videoWidth,
             deviceId: id ? { exact:id } : null
-        }
+        },
+        audio: true,
     };
 
     setupCamera(video, constraints, (err, stream) => {
