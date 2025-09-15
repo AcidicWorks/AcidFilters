@@ -44,7 +44,10 @@ function discoverCameras(callback) {
 }
 
 function audioPassThrough(stream) {
-    const audioContext = new AudioContext();
-    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
-    mediaStreamSource.connect(audioContext.destination);
+	try {
+		const audioContext = new AudioContext();
+		const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+		mediaStreamSource.connect(audioContext.destination);
+	}
+	catch {}
 }
